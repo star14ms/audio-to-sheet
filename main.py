@@ -1,20 +1,9 @@
 import numpy as np
 import time
 from constant import NOTE_TO_KEY
-from modules.test import get_synth
+from modules.test import synth
 from modules.preprocess import get_audio_frequency_spectrogram
 import librosa
-
-
-def synth(func):
-    def wrapper(*args, **kwargs):
-        fs = get_synth()
-        try:
-            result = func(fs, *args, **kwargs)
-        finally:
-            fs.delete()
-        return result
-    return wrapper
 
 
 @synth
@@ -33,10 +22,10 @@ def extract_notes(fs, spectrogram, sr, n_fft, hop_length, threshold, close_thres
         previous_indexes = set(indexes_initial)
         indexes = list(indexes_initial - previous_indexes)
         
-        # check if the note is continuous
-        for j in range(len(indexes)-1, -1, -1):
-            if np.mean(spectrogram[i:i+10, indexes[j]]) < threshold - 10:
-                indexes = np.delete(indexes, j)
+        # # check if the note is continuous
+        # for j in range(len(indexes)-1, -1, -1):
+        #     if np.mean(spectrogram[indexes[j], i:i+2]) < close_threshold:
+        #         indexes = np.delete(indexes, j)
 
         pressed = pressed.union(indexes)
         notes = set([specidx_to_note[idx] for idx in indexes])
@@ -60,7 +49,7 @@ def extract_notes(fs, spectrogram, sr, n_fft, hop_length, threshold, close_thres
 
 if __name__ == '__main__':
     audio_file = 'data/audio/Yiruma, (이루마) - River Flows in You [7maJOI3QMu0].webm' ### 수정하세요
-    # audio_file = "data/Everything's Alright- Laura Shigihara- lyrics [nP-AAlZlCkM].m4a"
+    # audio_file = "data/audio/Everything's Alright- Laura Shigihara- lyrics [nP-AAlZlCkM].m4a"
 
     n_fft = 2048
     threshold = -40

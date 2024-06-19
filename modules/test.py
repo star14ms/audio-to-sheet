@@ -9,3 +9,14 @@ def get_synth(soundfont_path='./data/Yamaha Grand-v2.1.sf2'):
     synth.start()
     
     return synth
+
+
+def synth(func):
+    def wrapper(*args, **kwargs):
+        fs = get_synth()
+        try:
+            result = func(fs, *args, **kwargs)
+        finally:
+            fs.delete()
+        return result
+    return wrapper
