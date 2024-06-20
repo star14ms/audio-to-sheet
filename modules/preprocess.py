@@ -39,18 +39,18 @@ def optimize_spectrogram_best_represent_each_note(spectrogram, sr):
         note_index = np.abs(frequencies - note).argmin()
         note_to_specindex[note_frequency] = note_index
 
-    # print(spectrogram.shape)
     spectrogram = np.take(spectrogram, list(note_to_specindex.values()), axis=0)
-    # print(spectrogram.shape)
-        
+
     return spectrogram
 
 
-def get_audio_frequency_spectrogram(audio_file, n_fft, hop_length, optimize=False):
-    spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, hop_length, plot=True)
+def get_audio_frequency_spectrogram(audio_file, n_fft, hop_length, optimize=False, plot=False):
+    spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, hop_length, plot)
+    print(spectrogram.shape)
     
     if optimize:
         spectrogram = optimize_spectrogram_best_represent_each_note(spectrogram, sr)
+    # print(spectrogram.shape)
         
     # # Display the spectrogram
     # plt.figure(figsize=(15, 9))
