@@ -6,6 +6,7 @@ from rich import print
 
 from modules.test import synth
 from modules.preprocess import get_audio_frequency_spectrogram
+from modules.utils import select_file
 from modules.utils.midi import write_notes_to_midi
 from modules.utils.scale import get_scale_from_spectrogram
 
@@ -86,15 +87,14 @@ def extract_notes(fs, spectrogram, sr, hop_length, note_start_threshold, listen=
 
 
 if __name__ == '__main__':
-    audio_file = 'data/audio/Yiruma, (이루마) - River Flows in You [7maJOI3QMu0].webm' ### 수정하세요
-    # audio_file = "data/audio/Everything's Alright- Laura Shigihara- lyrics [nP-AAlZlCkM].m4a"
+    audio_file = select_file('./data/audio')
 
     n_fft = 8192
     win_length = n_fft
     hop_length = 512
     note_start_threshold = 5
 
-    spectrogram, sr = get_audio_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=True)
+    spectrogram, sr = get_audio_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=True, plot=True)
 
     notes = extract_notes(spectrogram, sr, hop_length, note_start_threshold, listen=True)
     write_notes_to_midi(notes, 'output/main_simplify_spec.mid')
