@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from constant import NOTE_FREQUENCIES
 
 
-def get_frequency_spectrogram(audio_file, n_fft, hop_length, plot=False):
+def get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, plot=False):
     # Load the audio file
     y, sr = librosa.load(audio_file)
 
     # Generate the Short-Time Fourier Transform (STFT) of the audio
-    D = np.abs(librosa.stft(y, n_fft=n_fft, hop_length=hop_length))
+    D = np.abs(librosa.stft(y, n_fft=n_fft, win_length=win_length, hop_length=hop_length))
 
     # Convert amplitude to decibels
     DB = librosa.amplitude_to_db(D, ref=np.max) # Shape: [Frequency, Time]: dB
@@ -44,8 +44,8 @@ def optimize_spectrogram_best_represent_each_note(spectrogram, sr):
     return spectrogram
 
 
-def get_audio_frequency_spectrogram(audio_file, n_fft, hop_length, optimize=False, plot=False):
-    spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, hop_length, plot)
+def get_audio_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=False, plot=False):
+    spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, plot)
     print(spectrogram.shape)
     
     if optimize:

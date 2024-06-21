@@ -1,3 +1,4 @@
+import numpy as np
 
 
 NOTE_FREQUENCIES = {
@@ -66,3 +67,56 @@ NOTES = [
 ]
 
 KEY_TO_NOTE = {v: k for k, v in NOTE_TO_KEY.items()}
+
+
+# SCALES
+C_MAJOR_SCALE = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+CS_MAJOR_SCALE = ['C#', 'D#', 'F', 'F#', 'G#', 'A#', 'C']
+D_MAJOR_SCALE = ['D', 'E', 'F#', 'G', 'A', 'B', 'C#']
+DS_MAJOR_SCALE = ['D#', 'F', 'G', 'G#', 'A#', 'C', 'D']
+E_MAJOR_SCALE = ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#']
+F_MAJOR_SCALE = ['F', 'G', 'A', 'A#', 'C', 'D', 'E']
+FS_MAJOR_SCALE = ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'F']
+G_MAJOR_SCALE = ['G', 'A', 'B', 'C', 'D', 'E', 'F#']
+GS_MAJOR_SCALE = ['G#', 'A#', 'C', 'C#', 'D#', 'F', 'G']
+A_MAJOR_SCALE = ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#']
+AS_MAJOR_SCALE = ['A#', 'C', 'D', 'D#', 'F', 'G', 'A']
+B_MAJOR_SCALE = ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#']
+
+C_MINOR_SCALE = ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#']
+CS_MINOR_SCALE = ['C#', 'D#', 'E', 'F#', 'G#', 'A', 'B']
+D_MINOR_SCALE = ['D', 'E', 'F', 'G', 'A', 'A#', 'C']
+DS_MINOR_SCALE = ['D#', 'F', 'F#', 'G#', 'A#', 'B', 'C#']
+E_MINOR_SCALE = ['E', 'F#', 'G', 'A', 'B', 'C', 'D']
+F_MINOR_SCALE = ['F', 'G', 'G#', 'A#', 'C', 'C#', 'D#']
+FS_MINOR_SCALE = ['F#', 'G#', 'A', 'B', 'C#', 'D', 'E']
+G_MINOR_SCALE = ['G', 'A', 'A#', 'C', 'D', 'D#', 'F']
+GS_MINOR_SCALE = ['G#', 'A#', 'B', 'C#', 'D#', 'E', 'F#']
+A_MINOR_SCALE = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+AS_MINOR_SCALE = ['A#', 'C', 'C#', 'D#', 'F', 'F#', 'G#']
+B_MINOR_SCALE = ['B', 'C#', 'D', 'E', 'F#', 'G', 'A']
+
+SCALES = { 
+    'C': C_MAJOR_SCALE, 'C#': CS_MAJOR_SCALE, 'D': D_MAJOR_SCALE, 'D#': DS_MAJOR_SCALE, 'E': E_MAJOR_SCALE, 'F': F_MAJOR_SCALE, 'F#': FS_MAJOR_SCALE, 'G': G_MAJOR_SCALE, 'G#': GS_MAJOR_SCALE, 'A': A_MAJOR_SCALE, 'A#': AS_MAJOR_SCALE, 'B': B_MAJOR_SCALE, 
+    'Cm': C_MINOR_SCALE, 'C#m': CS_MINOR_SCALE, 'Dm': D_MINOR_SCALE, 'D#m': DS_MINOR_SCALE, 'Em': E_MINOR_SCALE, 'Fm': F_MINOR_SCALE, 'F#m': FS_MINOR_SCALE, 'Gm': G_MINOR_SCALE, 'G#m': GS_MINOR_SCALE, 'Am': A_MINOR_SCALE, 'A#m': AS_MINOR_SCALE, 'Bm': B_MINOR_SCALE,
+}
+
+
+# 88 keys on piano
+C_KEYS = np.array([4, 16, 28, 40, 52, 64, 76, 88]) - 1
+CS_KEYS = np.array([5, 17, 29, 41, 53, 65, 77]) - 1
+D_KEYS = np.array([6, 18, 30, 42, 54, 66, 78]) - 1
+DS_KEYS = np.array([7, 19, 31, 43, 55, 67, 79]) - 1
+E_KEYS = np.array([8, 20, 32, 44, 56, 68, 80]) - 1
+F_KEYS = np.array([9, 21, 33, 45, 57, 69, 81]) - 1
+FS_KEYS = np.array([10, 22, 34, 46, 58, 70, 82]) - 1
+G_KEYS = np.array([11, 23, 35, 47, 59, 71, 83]) - 1
+GS_KEYS = np.array([12, 24, 36, 48, 60, 72, 84]) - 1
+A_KEYS = np.array([1, 13, 25, 37, 49, 61, 73, 85]) - 1
+AS_KEYS = np.array([2, 14, 26, 38, 50, 62, 74, 86]) - 1
+B_KEYS = np.array([3, 15, 27, 39, 51, 63, 75, 87]) - 1
+
+KYE_DICT_ON_PIANO = {
+    'C': C_KEYS, 'C#': CS_KEYS, 'D': D_KEYS, 'D#': DS_KEYS, 'E': E_KEYS, 'F': F_KEYS, 'F#': FS_KEYS, 'G': G_KEYS, 'G#': GS_KEYS, 'A': A_KEYS, 'A#': AS_KEYS, 'B': B_KEYS,
+}
+
