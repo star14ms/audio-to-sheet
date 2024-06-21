@@ -1,5 +1,5 @@
 import numpy as np
-from constant import SCALES, KYE_DICT_ON_PIANO
+from modules.constants import SCALES, KYE_DICT_ON_PIANO
 
 
 def get_key_signiture_from_spectrogram(spectrogram):

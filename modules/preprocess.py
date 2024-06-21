@@ -3,10 +3,10 @@ import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
 
-from constant import NOTE_FREQUENCIES
+from modules.constants import NOTE_FREQUENCIES
 
 
-def get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, plot=False):
+def get_frequency_spectrogram(audio_file, n_fft=2048, win_length=2048, hop_length=512, plot=False):
     # Load the audio file
     y, sr = librosa.load(audio_file)
 
@@ -43,7 +43,7 @@ def optimize_spectrogram_best_represent_each_note(spectrogram, n_fft, sr):
     return spectrogram
 
 
-def get_audio_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=False, plot=False):
+def get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=False, plot=False):
     spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, plot)
     print(spectrogram.shape)
     

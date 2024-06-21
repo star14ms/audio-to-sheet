@@ -5,12 +5,11 @@ from rich.progress import track
 from rich import print
 
 from modules.test import synth
-from modules.preprocess import get_audio_frequency_spectrogram
-from modules.utils import select_file
+from modules.preprocess import get_simplified_frequency_spectrogram
 from modules.utils.midi import write_notes_to_midi
+from modules.utils import select_file
 from modules.utils.scale import get_scale_from_spectrogram
-
-from constant import NOTE_TO_KEY, NOTES
+from modules.constants import NOTE_TO_KEY, NOTES
 
 
 def print_notes_info_to_press(amplitudes, notes_to_press, idxs_to_press, open_threshold, scale, times, i, amplitudes_prev):
@@ -30,7 +29,7 @@ def print_notes_info_to_press(amplitudes, notes_to_press, idxs_to_press, open_th
 def extract_notes(fs, spectrogram, sr, hop_length, open_threshold_weight, listen=False, speed=1.0):
     notes = []
     times = librosa.frames_to_time(np.arange(spectrogram.shape[1]), sr=sr, hop_length=hop_length)
-    time_interval = np.mean(np.diff(times))
+    time_interval = hop_length / sr
 
     if listen:
         scale = get_scale_from_spectrogram(spectrogram)
@@ -105,6 +104,6 @@ if __name__ == '__main__':
     speed = 1.2
     listen = True
 
-    spectrogram, sr = get_audio_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=True, plot=False)
+    spectrogram, sr = get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=True, plot=False)
     notes = extract_notes(spectrogram[:, start_frame:], sr, hop_length, open_threshold_weight, listen, speed)
     write_notes_to_midi(notes, 'output/main_simplify_spec.mid')
