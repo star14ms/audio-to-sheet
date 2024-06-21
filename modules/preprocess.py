@@ -29,9 +29,8 @@ def get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, plot=Fa
     return DB, sr
 
 
-def optimize_spectrogram_best_represent_each_note(spectrogram, sr):
+def optimize_spectrogram_best_represent_each_note(spectrogram, n_fft, sr):
     note_to_specindex = {}
-    n_fft = 2 * (spectrogram.shape[0] - 1)
     frequencies = librosa.fft_frequencies(sr=sr, n_fft=n_fft)
     
     for note_frequency in NOTE_FREQUENCIES:
@@ -49,23 +48,24 @@ def get_audio_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, o
     print(spectrogram.shape)
     
     if optimize:
-        spectrogram = optimize_spectrogram_best_represent_each_note(spectrogram, sr)
+        spectrogram = optimize_spectrogram_best_represent_each_note(spectrogram, n_fft, sr)
     # print(spectrogram.shape)
         
-    # # Display the spectrogram
-    # plt.figure(figsize=(15, 9))
-    # plt.pcolormesh(
-    #     librosa.frames_to_time(np.arange(spectrogram.shape[1]+1), sr=sr, hop_length=hop_length), 
-    #     np.arange(spectrogram.shape[0]+1), 
-    #     spectrogram,
-    #     cmap='magma'
-    # )
-    # plt.colorbar(format='%+2.0f dB')
-    # # plt.xticks(np.arange(spectrogram.shape[1]+1, 30), np.arange(spectrogram.shape[1]+1, 30))
-    # plt.yticks(np.arange(3, spectrogram.shape[0]+1, 12), ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8'])
-    # plt.title('Spectrogram')
-    # plt.xlabel('Time')
-    # plt.ylabel('Frequency')
-    # plt.show()
+    # Display the spectrogram
+    if plot:
+        plt.figure(figsize=(15, 9))
+        plt.pcolormesh(
+            librosa.frames_to_time(np.arange(spectrogram.shape[1]+1), sr=sr, hop_length=hop_length), 
+            np.arange(spectrogram.shape[0]+1), 
+            spectrogram,
+            cmap='magma'
+        )
+        plt.colorbar(format='%+2.0f dB')
+        # plt.xticks(np.arange(spectrogram.shape[1]+1, 30), np.arange(spectrogram.shape[1]+1, 30))
+        plt.yticks(np.arange(3, spectrogram.shape[0]+1, 12), ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8'])
+        plt.title('Spectrogram')
+        plt.xlabel('Time')
+        plt.ylabel('Frequency')
+        plt.show()
 
     return spectrogram, sr
