@@ -1,6 +1,7 @@
 import mido
 from mido.midifiles.tracks import _to_abstime, _to_reltime
-import numpy as np
+import torch
+
 # from constant import KEY_TO_NOTE
 
 
@@ -43,9 +44,9 @@ def get_merged_track_rel_time(mid):
 def midi_to_matrix(midi_file):
   mid = mido.MidiFile(midi_file)
   mid = get_merged_track_abs_time(mid)
-  matrix = np.zeros([mid[-1].time, 88])
+  matrix = torch.zeros([mid[-1].time, 88])
   
-  matrix_last_pressed = np.zeros(88, dtype=int)
+  matrix_last_pressed = torch.zeros(88, dtype=int)
 
   for msg in mid:
     if msg.type == 'note_on':
@@ -69,7 +70,7 @@ def matrix_to_midi(matrix, output_file):
   # track.append(mido.MetaMessage('set_tempo', tempo=round(1000000*60/bpm), time=0))
 
   last_time = 0
-  matrix_last_pressed = np.zeros(88, dtype=int)
+  matrix_last_pressed = torch.zeros(88, dtype=int)
   pressing = [False] * 88
 
   for i, row in enumerate(matrix):
@@ -90,7 +91,20 @@ def matrix_to_midi(matrix, output_file):
   mid.save(output_file)
   
   return track
+
   
+def ticks_to_time(midi_file):
+  mid = mido.MidiFile(midi_file)
+  tempo = 500000  # default tempo
+  ticks_per_beat = mid.ticks_per_beat
+  for i, track in enumerate(mid.tracks):
+      for msg in track:
+          if msg.type == 'set_tempo':
+              tempo = msg.tempo
+              break
+  seconds_per_tick = (tempo / 1000000.0) / ticks_per_beat
+  return seconds_per_tick
+
 
 if __name__ == '__main__':
   midi_file = 'data/midi/River Flows in You.mid'
