@@ -7,6 +7,7 @@ import librosa
 import numpy as np
 import glob
 import pickle
+import sys
 
 from modules.utils.midi import midi_to_matrix, ticks_to_time
 
@@ -30,26 +31,35 @@ class AudioMIDIDataset(Dataset):
         
         # Load and transform the audio to a spectrogram
         spectrogram = self.get_frequency_spectrogram(audio_file, n_fft=self.n_fft, win_length=self.win_length, hop_length=self.hop_length)[0]
-        audio_length_seconds = librosa.get_duration(filename=audio_file)
+        audio_length_seconds = librosa.get_duration(path=audio_file)
+        
+        # add one colum to the beginning of inputs as no sound at the beginning
+        spectrogram = torch.from_numpy(spectrogram.T)
+        spectrogram_shift = torch.full_like(spectrogram[0:1, :], torch.tensor(-80))
+        spectrogram = torch.cat((spectrogram_shift, spectrogram), dim=0)
         
         if midi_file.replace('.mid', '.pkl') in glob.glob('data/train/*.pkl'):
             with open(midi_file.replace('.mid', '.pkl'), 'rb') as f:
-                midi_matrix = pickle.load(f)
+                labels = pickle.load(f)
             
-            return spectrogram.T, midi_matrix
+            return spectrogram, labels
         
         # Load and process the MIDI file
-        midi_matrix = midi_to_matrix(midi_file)
+        labels = midi_to_matrix(midi_file)
         midi_seconds_per_tick = ticks_to_time(midi_file)
         
         # Apply time alignment transform
         if self.transform:
-            spectrogram, midi_matrix = self.transform(spectrogram, midi_matrix, midi_seconds_per_tick, audio_length_seconds)
-            
-        with open(midi_file.replace('.mid', '.pkl'), 'wb') as f:
-            pickle.dump(midi_matrix, f)
+            labels = self.transform(spectrogram[1:], labels, midi_seconds_per_tick, audio_length_seconds)
         
-        return spectrogram.T, midi_matrix
+        # add one colum to the beginning of labels to shift the labels
+        labels_shift = torch.zeros_like(labels[0:1, :])
+        labels = torch.cat((labels_shift, labels), dim=0)
+        
+        with open(midi_file.replace('.mid', '.pkl'), 'wb') as f:
+            pickle.dump(labels, f)
+        
+        return spectrogram, labels
 
     @staticmethod
     def get_frequency_spectrogram(audio_file, n_fft=2048, win_length=2048, hop_length=512):
@@ -66,7 +76,7 @@ class AlignTimeDimension:
     
     def __call__(self, spectrogram, midi_matrix, seconds_per_tick, audio_length_seconds):
         # Adjust the MIDI matrix to match the spectrogram frames
-        num_frames = spectrogram.shape[1]
+        num_frames = spectrogram.shape[0]
         frame_time = audio_length_seconds / num_frames
         # Assuming midi_matrix is torch.Tensor
         rescaled_matrix = torch.zeros((num_frames, midi_matrix.shape[1]))
@@ -85,18 +95,20 @@ class AlignTimeDimension:
 
                     rescaled_matrix[start_frame:end_frame, note] = 1
 
-        return spectrogram, rescaled_matrix
+        return rescaled_matrix
 
 
 class AudioDataModule(LightningDataModule):
-    def __init__(self, batch_size=128, n_fft=2048, win_length=2048, hop_length=512):
+    def __init__(self, batch_size=1, n_fft=2048, win_length=2048, hop_length=512):
         super().__init__()
         self.batch_size = batch_size
         self.n_fft = n_fft  
         self.win_length = win_length
         self.hop_length = hop_length
 
-    def train_dataloader(self, num_workers=0, audio_files='data/train/*.wav', midi_files='data/train/*.mid'):
+    def train_dataloader(self, num_workers=None, audio_files='data/train/*.wav', midi_files='data/train/*.mid'):
+        if num_workers is None:
+            num_workers = int(sys.argv[1]) if len(sys.argv) > 1 else 0
         audio_files = glob.glob(audio_files)
         midi_files = glob.glob(midi_files)
 
@@ -118,7 +130,7 @@ if __name__ == '__main__':
         print(inputs.shape, labels.shape)
         for j in range(inputs.shape[1]):
             spectrogram = optimize_spectrogram_best_represent_each_note(inputs[0, j, :], 2048, 22050)
-            hot_encoded = torch.where(spectrogram > torch.max(spectrogram)-10, spectrogram-torch.max(spectrogram)+9, 0)
+            hot_encoded = torch.where(spectrogram > max(-80, torch.max(spectrogram)-10), spectrogram-torch.max(spectrogram)+9, 0)
             input = hot_encoded[40:64].to(torch.int32)
             label = labels[0, j, 40:64].to(torch.int32)
             print(input)

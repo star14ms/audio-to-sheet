@@ -126,6 +126,7 @@ class Audio2MidiOld(nn.Module):
         n_freq = n_fft // 2 + 1
         
         self.audio_length = 1 + 2*len(conv_dims)
+        self.n_notes = n_notes
         self.time_encoder = AudioTimeEncoder(conv_dims)
         self.freq_encoder = AudioFreqEncoderOld(in_featrue=n_freq, hidden_dims=hidden_dims, n_notes=n_notes, n_channels=conv_dims[-1][-1])
         self.predictor = AudioTransformerDecoder(out_dim=n_notes, nhead=nhead, num_layers=num_layers)
