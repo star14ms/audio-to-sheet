@@ -5,25 +5,7 @@ import time
 from model_lighting import Audio2MidiL # choose the model you want to train
 from dataset import AudioMIDIDataset
 
-
-def print_matching_highlight(list_t, list_y):
-    str_t = 'Correct: '
-    str_y = 'Predict: '
-    header= '         A B C' + ' D EF G A B C' * 7
-    for i, (item_t, item_y) in enumerate(zip(list_t, list_y)):
-        if i % 12 == 3:
-            str_t += ' '
-            str_y += ' '
-        if item_t == 0:
-            str_t += f"\033[90m{item_t}\033[0m"
-        else:
-            str_t += f"\033[97m{item_t}\033[0m"
-        if item_t == item_y:
-            str_y += f"\033[92m{item_y}\033[0m"
-        else:
-            str_y += f"\033[91m{item_y}\033[0m"
-
-    return print(str_t, str_y, header, sep='\n')
+from modules.utils import print_matching_highlight
 
 
 model = Audio2MidiL() # change the model

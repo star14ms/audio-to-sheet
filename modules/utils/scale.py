@@ -4,21 +4,21 @@ from modules.constants import SCALES, KYE_DICT_ON_PIANO
 
 def get_key_signiture_from_spectrogram(spectrogram):
     '''return key signiture of the spectrogram'''
-    n_times_in_audio = (spectrogram+80).sum(axis=1)
+    var_of_88_notes = (spectrogram+80).var(axis=1)
     
     var_of_keys_dB = {
-        'C': n_times_in_audio[KYE_DICT_ON_PIANO['C']].var(),
-        'C#': n_times_in_audio[KYE_DICT_ON_PIANO['C#']].var(),
-        'D': n_times_in_audio[KYE_DICT_ON_PIANO['D']].var(),
-        'D#': n_times_in_audio[KYE_DICT_ON_PIANO['D#']].var(),
-        'E': n_times_in_audio[KYE_DICT_ON_PIANO['E']].var(),
-        'F': n_times_in_audio[KYE_DICT_ON_PIANO['F']].var(),
-        'F#': n_times_in_audio[KYE_DICT_ON_PIANO['F#']].var(),
-        'G': n_times_in_audio[KYE_DICT_ON_PIANO['G']].var(),
-        'G#': n_times_in_audio[KYE_DICT_ON_PIANO['G#']].var(),
-        'A': n_times_in_audio[KYE_DICT_ON_PIANO['A']].var(),
-        'A#': n_times_in_audio[KYE_DICT_ON_PIANO['A#']].var(),
-        'B': n_times_in_audio[KYE_DICT_ON_PIANO['B']].var(),
+        'C': var_of_88_notes[KYE_DICT_ON_PIANO['C']].mean(),
+        'C#': var_of_88_notes[KYE_DICT_ON_PIANO['C#']].mean(),
+        'D': var_of_88_notes[KYE_DICT_ON_PIANO['D']].mean(),
+        'D#': var_of_88_notes[KYE_DICT_ON_PIANO['D#']].mean(),
+        'E': var_of_88_notes[KYE_DICT_ON_PIANO['E']].mean(),
+        'F': var_of_88_notes[KYE_DICT_ON_PIANO['F']].mean(),
+        'F#': var_of_88_notes[KYE_DICT_ON_PIANO['F#']].mean(),
+        'G': var_of_88_notes[KYE_DICT_ON_PIANO['G']].mean(),
+        'G#': var_of_88_notes[KYE_DICT_ON_PIANO['G#']].mean(),
+        'A': var_of_88_notes[KYE_DICT_ON_PIANO['A']].mean(),
+        'A#': var_of_88_notes[KYE_DICT_ON_PIANO['A#']].mean(),
+        'B': var_of_88_notes[KYE_DICT_ON_PIANO['B']].mean(),
     }
     
     var_of_dB_scales = {
@@ -29,7 +29,9 @@ def get_key_signiture_from_spectrogram(spectrogram):
         ])
     }
     
-    return max(var_of_dB_scales, key=var_of_dB_scales.get)
+    key_signitures = [key for key in var_of_dB_scales if var_of_dB_scales[key] == max(var_of_dB_scales.values())]
+    key_signiture = max(map(lambda key: key.replace('m', ''), key_signitures), key=var_of_keys_dB.get)
+    return key_signiture
 
 
 def get_scale_from_spectrogram(spectrogram):

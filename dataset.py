@@ -10,6 +10,7 @@ import pickle
 import sys
 
 from modules.utils.midi import midi_to_matrix, ticks_to_time
+from modules.utils import print_matching_highlight
 
 
 class AudioMIDIDataset(Dataset):
@@ -43,6 +44,8 @@ class AudioMIDIDataset(Dataset):
                 labels = pickle.load(f)
             
             return spectrogram, labels
+        
+        print('Loading...', midi_file.split('/')[-1])
         
         # Load and process the MIDI file
         labels = midi_to_matrix(midi_file)
@@ -131,9 +134,9 @@ if __name__ == '__main__':
         for j in range(inputs.shape[1]):
             spectrogram = optimize_spectrogram_best_represent_each_note(inputs[0, j, :], 2048, 22050)
             hot_encoded = torch.where(spectrogram > max(-80, torch.max(spectrogram)-10), spectrogram-torch.max(spectrogram)+9, 0)
-            input = hot_encoded[40:64].to(torch.int32)
-            label = labels[0, j, 40:64].to(torch.int32)
-            print(input)
-            print(label)
-            breakpoint()
+            input_ = hot_encoded.to(torch.int32)
+            label_ = labels[0, j].to(torch.int32)
+            
+            print_matching_highlight(label_, input_)
+            input()
             
