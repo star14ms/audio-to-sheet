@@ -16,14 +16,19 @@ hparams_model ={
 }
 
 hparams_data = {
-  'batch_size': 1,
-  'n_fft': 2048,
+  # 'batch_size': 1,
   'win_length': 2048,
   'hop_length': 512,
+  'bpm': 120,
 }
 
-model = Audio2MidiL(n_fft=hparams_data['n_fft'], **hparams_model) # change the model
-datamodule = AudioDataModule(**hparams_data)
+hparams_shared = {
+  'n_fft': 2048,
+  'watch_prev_n_frames': 1,
+}
+
+model = Audio2MidiL(**hparams_shared, **hparams_model) # change the model
+datamodule = AudioDataModule(**hparams_shared, **hparams_data)
 
 # Initialize a trainer
 logger = TensorBoardLogger("./lightning_logs/", name=model.__class__.__name__)

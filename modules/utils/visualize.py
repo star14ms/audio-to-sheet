@@ -113,10 +113,13 @@ def plot_spectrogram_hightlighting_pressing_notes(spectrogram, pressed_notes, sr
 
     unit_x_on_canvas = ax.dataLim.x1 / spectrogram.shape[1]
     unit_y_on_canvas = ax.dataLim.y1 / spectrogram.shape[0]
-    for i, pressed_notes_moment in enumerate(pressed_notes):
+    from rich.progress import track
+    for i, pressed_notes_moment in track(enumerate(pressed_notes), total=len(pressed_notes), description='Highlighting pressed notes'):
         for j, pressed in enumerate(pressed_notes_moment):
-            if pressed:
+            if pressed and pressed_notes_moment[j-1] == 0:
                 ax.scatter(unit_x_on_canvas*j, unit_y_on_canvas*i+unit_y_on_canvas/2, color='red', s=10)
+            elif not pressed and pressed_notes_moment[j-1] == 1:
+                ax.scatter(unit_x_on_canvas*j, unit_y_on_canvas*i+unit_y_on_canvas/2, color='blue', s=10)
 
     plt.colorbar(img, format='%+2.0f dB', ax=ax)
     ax.set_yticks(np.arange(3, spectrogram.shape[0]+1, 12), ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8'])

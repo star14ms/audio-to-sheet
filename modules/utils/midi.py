@@ -39,16 +39,62 @@ def get_merged_track_rel_time(mid):
   messages.sort(key=lambda msg: msg.time)
 
   return mido.MidiTrack(_to_reltime(messages, skip_checks=True))
-  
 
-def midi_to_matrix(midi_file):
+
+def midi_fix_time_as_tempo_120(mid):
+    times_tempo_changed = []
+    tempo_list = []
+    
+    for track in mid.tracks:
+      current = 0
+      for msg in track:
+          current += msg.time
+          if msg.type == 'set_tempo':
+              times_tempo_changed.append(current)
+              tempo_list.append(msg.tempo)
+  
+    for track in mid.tracks:
+      tempo_init = 500000  # default tempo (120 bpm)
+      tempo = tempo_init
+      current = 0
+      idx_tempo = 0
+    
+      for msg in track:
+        duration_prev_tempos = 0
+        
+        while idx_tempo < len(times_tempo_changed) and current + msg.time >= times_tempo_changed[idx_tempo]:
+          frac_time = times_tempo_changed[idx_tempo] - current
+          duration_prev_tempos += frac_time * tempo / tempo_init
+          current += frac_time
+          msg.time -= frac_time
+          
+          tempo = tempo_list[idx_tempo]
+          idx_tempo += 1
+      
+        current += msg.time
+        msg.time = round(duration_prev_tempos + msg.time * tempo / tempo_init)
+
+    return mid
+
+
+def second_per_tick(bpm=120, ticks_per_beat=480):
+  return (60 / bpm) / ticks_per_beat
+
+
+def midi_to_matrix(midi_file, audio_length_seconds=None, bpm=120):
   mid = mido.MidiFile(midi_file)
-  mid = get_merged_track_abs_time(mid)
-  matrix = torch.zeros([mid[-1].time, 88])
-  
-  matrix_last_pressed = torch.zeros(88, dtype=int)
+  mid = midi_fix_time_as_tempo_120(mid)
+  track = get_merged_track_abs_time(mid)
 
-  for msg in mid:
+  if audio_length_seconds:
+    num_frames = round(audio_length_seconds / second_per_tick(bpm, mid.ticks_per_beat))
+  else:
+    num_frames = track[-1].time
+
+  matrix = torch.zeros([num_frames, 88])
+  matrix_last_pressed = torch.zeros(88, dtype=int)
+  
+  for msg in track:
     if msg.type == 'note_on':
       
       if msg.velocity != 0:
@@ -91,19 +137,6 @@ def matrix_to_midi(matrix, output_file):
   mid.save(output_file)
   
   return track
-
-  
-def ticks_to_time(midi_file):
-  mid = mido.MidiFile(midi_file)
-  tempo = 500000  # default tempo
-  ticks_per_beat = mid.ticks_per_beat
-  for i, track in enumerate(mid.tracks):
-      for msg in track:
-          if msg.type == 'set_tempo':
-              tempo = msg.tempo
-              break
-  seconds_per_tick = (tempo / 1000000.0) / ticks_per_beat
-  return seconds_per_tick
 
 
 if __name__ == '__main__':
