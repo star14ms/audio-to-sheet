@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+import math
 
 from utils.modelviz import profile_model
 
@@ -144,3 +145,125 @@ class Audio2MIDIOld(nn.Module):
         # print(x.shape)
         return x
 
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term_even = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term_odd = torch.exp(torch.arange(1, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term_even)
+        pe[:, 1::2] = torch.cos(position * div_term_odd)
+        pe = pe.unsqueeze(0)
+
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:, :x.shape[1]]
+
+        return self.dropout(x)
+
+
+class Audio2MIDITransformer(nn.Module):
+    def __init__(
+        self, d_model=1025, n_notes=88, 
+        nhead_encoder=5, nhead_decoder=11, 
+        num_encoder_layers=6, num_decoder_layers=6, 
+        dim_feedforward=2048, batch_first=False
+    ):
+        super().__init__()
+        self.pos_encoding = PositionalEncoding(d_model)
+        self.pos_encoding_tgt = PositionalEncoding(n_notes)
+        self.encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(
+                d_model=d_model, 
+                nhead=nhead_encoder, 
+                dim_feedforward=dim_feedforward, 
+                batch_first=batch_first,
+            )
+        , num_layers=num_encoder_layers)
+        self.freq_encoder = AudioFreqEncoder(
+            in_featrue=d_model, 
+            hidden_dims=(512, 256), 
+            n_notes=n_notes
+        )
+        self.decoder = nn.TransformerDecoder(
+            nn.TransformerDecoderLayer(
+                d_model=n_notes, 
+                nhead=nhead_decoder, 
+                dim_feedforward=dim_feedforward, 
+                batch_first=batch_first,
+            )
+        , num_layers=num_decoder_layers)
+
+
+    def forward(self, x, tgt, **kwargs):
+        def _get_encoder_kwargs(kwargs: dict):
+            return {
+                'mask': kwargs.get('src_mask'),
+                'src_key_padding_mask': kwargs.get('src_key_padding_mask'),
+                'is_causal': kwargs.get('src_is_causal', False),
+            }
+
+        def _get_decoder_kwargs(kwargs: dict):
+            return {
+                'tgt_mask': kwargs.get('tgt_mask'),
+                'memory_mask': kwargs.get('memory_mask'),
+                'tgt_key_padding_mask': kwargs.get('tgt_key_padding_mask'),
+                'memory_key_padding_mask': kwargs.get('memory_key_padding_mask'),
+                'tgt_is_causal': kwargs.get('tgt_is_causal', False),
+                'memory_is_causal': kwargs.get('memory_is_causal', False),
+            }
+
+        x = self.pos_encoding(x)
+        tgt = self.pos_encoding_tgt(tgt)
+        memory = self.encoder(x, **_get_encoder_kwargs(kwargs))
+        seq_len = memory.shape[0]
+        memory = self.freq_encoder(memory.view(-1, memory.shape[2]))
+        memory = memory.view(seq_len, -1, memory.shape[1])
+        x = self.decoder(tgt, memory, **_get_decoder_kwargs(kwargs))
+
+        return x
+
+
+if __name__ == '__main__':
+    max_len = 24
+    win_length = 12
+    watch_prev_n_frames = 4
+    tgt_max_len = max_len - win_length - watch_prev_n_frames + 1
+    batch_size = 2
+    n_fft = 2048
+    STFT_n_rows = 1 + n_fft//2
+    n_notes = 88
+    
+    kwargs = {
+        'd_model': STFT_n_rows,
+        'n_notes': n_notes,
+        'nhead_encoder': 5,
+        'nhead_decoder': 11,
+        'num_decoder_layers': 2,
+        'num_encoder_layers': 2,
+        'dim_feedforward': 512,
+        'max_len': max_len,
+        'tgt_max_len': tgt_max_len,
+        'batch_first': False
+    }
+
+    model = Audio2MIDITransformer(**kwargs)
+    model.eval()
+
+    spec_next = torch.randn(win_length, batch_size, STFT_n_rows)
+    feature_prev = torch.randn(tgt_max_len, batch_size, n_notes)
+    print(spec_next.shape, feature_prev.shape)
+
+    inputs = (spec_next, feature_prev)
+    x = model(*inputs)
+    print(x.shape)
+    
+    profile_model(model, inputs)
+    # from modules.utils.modelviz import draw_graphs
+    # draw_graphs(model, inputs, min_depth=1, max_depth=3, directory='./output/model_viz/', hide_module_functions=True, input_names=('spec_next', 'feature_prev'), output_names=('notes_next',))
+    
