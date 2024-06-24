@@ -1,42 +1,68 @@
 import torch
 from pytorch_lightning import Trainer
-from model_lighting import Audio2MidiL # choose the model you want to train
-from dataset import AudioDataModule
-from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+import os
 
-hparams_model ={
-  'batch_size': 16,
-  'threshold': 0.7,
-  'conv_dims': [(1, 4), (4, 8), (8, 16), (16, 32)], 
-  'hidden_dims': (512, 256), 
-  'n_notes': 88, 
-  'nhead': 4, 
-  'num_layers': 4
-}
+import warnings
+import hydra
+from hydra.core.config_store import ConfigStore
+from omegaconf import OmegaConf, DictConfig
+from rich.traceback import install
+install()
 
-hparams_data = {
-  # 'batch_size': 1,
-  'win_length': 2048,
-  'hop_length': 512,
-  'bpm': 120,
-}
+from dataset import AudioDataModule
+from audio2midi.model_lighting import Audio2MIDIL, Audio2MIDITransformerL # choose the model you want to train
+from audio2midi import (
+  DataConfig,
+  TrainConfig,
+  Audio2MIDIConfig, 
+  Audio2MIDITransformerConfig, 
+)
+from utils.rich import console
 
-hparams_shared = {
-  'n_fft': 2048,
-  'watch_prev_n_frames': 1,
-}
 
-model = Audio2MidiL(**hparams_shared, **hparams_model) # change the model
-datamodule = AudioDataModule(**hparams_shared, **hparams_data)
+def train(config: DictConfig):
+    hparams_data = OmegaConf.to_container(config.data.params, resolve=True)
+    hparams_model = OmegaConf.to_container(config.model.params, resolve=True)
+    hparams_train = OmegaConf.to_container(config.train.params, resolve=True)
+    max_epochs = hparams_train.pop("epoch", None)
 
-# Initialize a trainer
-logger = TensorBoardLogger("./lightning_logs/", name=model.__class__.__name__)
-logger.log_hyperparams(params=hparams_model)
-trainer = Trainer(max_epochs=10, logger=logger, accelerator='mps' if torch.backends.mps.is_available() else None, enable_progress_bar=False)
+    datamodule = AudioDataModule(**hparams_data)
 
-# Train the model
-trainer.fit(model, datamodule=datamodule)
+    if config.model.name == 'Audio2MIDI':
+        hparams_shared = {
+            'n_fft': hparams_data['n_fft'],
+            'watch_prev_n_frames': hparams_data['watch_prev_n_frames'],
+        }
+        model = Audio2MIDIL(**hparams_model, **hparams_train, **hparams_shared)
+    elif config.model.name == 'Audio2MIDITransformer':
+        model = Audio2MIDITransformerL(**hparams_model, **hparams_train)
+    console.log(OmegaConf.to_yaml(config))
 
-# Save the model to disk (optional)
-torch.save(model.state_dict(), 'output/model.pth')
+    # Initialize a trainer
+    logger = TensorBoardLogger("./lightning_logs/", name=model.__class__.__name__)
+    logger.log_hyperparams(params=hparams_model)
+    trainer = Trainer(max_epochs=max_epochs, logger=logger, log_every_n_steps=10, accelerator='mps' if torch.backends.mps.is_available() else None, enable_progress_bar=False)
+
+    # Train the model
+    trainer.fit(model, datamodule=datamodule)
+
+    # Save the model to disk (optional)
+    torch.save(model.state_dict(), 'output/model.pth')
+
+
+cs = ConfigStore.instance()
+cs.store(group="data", name="base_data", node=DataConfig, package="data")
+cs.store(group="train", name="base_train", node=TrainConfig, package="train")
+cs.store(group="model", name="base_Audio2MIDI", node=Audio2MIDIConfig, package="model")
+cs.store(group="model", name="base_Audio2MIDITransformer_model", node=Audio2MIDITransformerConfig, package="model")
+
+
+@hydra.main(config_path=os.path.join('.', "configs"), config_name="config", version_base=None)
+def main(config: DictConfig) -> None:
+    # warnings.filterwarnings('ignore')
+    train(config)
+
+
+if __name__ == '__main__':
+    main()

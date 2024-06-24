@@ -1,0 +1,9 @@
+name: "default"
+
+params:
+  sr: 22050
+  n_fft: 2048
+  win_length: 2048
+  hop_length: 512
+  bpm: 120
+  watch_prev_n_frames: 1

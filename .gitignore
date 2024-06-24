@@ -164,4 +164,5 @@ cython_debug/
 data/*
 !data/*.py
 output/*
+outputs/*
 lightning_logs/*
