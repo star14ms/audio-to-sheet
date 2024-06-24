@@ -10,9 +10,9 @@ import pickle
 import sys
 import os
 
-from modules.utils.midi import midi_to_matrix, second_per_tick
-from modules.utils.visualize import plot_spectrogram_hightlighting_pressing_notes
-from modules.transform import AlignTimeDimension, PadPrefix
+from utils.midi import midi_to_matrix, second_per_tick
+from utils.visualize import plot_spectrogram_hightlighting_pressing_notes
+from audio2midi.transform import AlignTimeDimension, PadPrefix
 
 
 class AudioMIDIDataset(Dataset):
@@ -56,9 +56,12 @@ class AudioMIDIDataset(Dataset):
         return DB, sr
     
     def prepare_data(self):
+        print('Preprocessing data...')
         align = AlignTimeDimension()
 
         for audio_file, midi_file in zip(self.audio_files, self.midi_files):
+            if os.path.relpath(midi_file.replace('.mid', '.pkl')) in glob.glob('data/train/*.pkl'):
+                continue
 
             # Load and transform the audio to a spectrogram
             spectrogram = self.get_frequency_spectrogram(audio_file, sr=self.sr, n_fft=self.n_fft, win_length=self.win_length, hop_length=self.hop_length)[0]
@@ -66,9 +69,6 @@ class AudioMIDIDataset(Dataset):
             
             # add one colum to the beginning of inputs as no sound at the beginning
             spectrogram = torch.from_numpy(spectrogram.T)
-            
-            if os.path.relpath(midi_file.replace('.mid', '.pkl')) in glob.glob('data/train/*.pkl'):
-                continue
             
             print('Aligning MIDI matrix...', midi_file.split('/')[-1])
             
@@ -85,44 +85,38 @@ class AudioMIDIDataset(Dataset):
 
 
 class AudioDataModule(LightningDataModule):
-    def __init__(self, batch_size=1, sr=22050, n_fft=2048, win_length=2048, hop_length=512, watch_prev_n_frames=1, bpm=120):
+    def __init__(self, audio_files='data/train/*.wav', midi_files='data/train/*.mid', batch_size=1, sr=22050, n_fft=2048, win_length=2048, hop_length=512, watch_prev_n_frames=1, bpm=120):
         super().__init__()
         self.batch_size = batch_size
-        self.sr = sr
-        self.n_fft = n_fft  
-        self.win_length = win_length
-        self.hop_length = hop_length
-        self.watch_prev_n_frames = watch_prev_n_frames
-        self.bpm = bpm
-
-    def train_dataloader(self, num_workers=None, audio_files='data/train/*.wav', midi_files='data/train/*.mid'):
-        if num_workers is None:
-            num_workers = int(sys.argv[1]) if len(sys.argv) > 1 else 0
-        audio_files = glob.glob(audio_files)
-        midi_files = glob.glob(midi_files)
+        
+        kwargs_dataset = {
+            'sr': sr,
+            'n_fft': n_fft,
+            'win_length': win_length,
+            'hop_length': hop_length,
+            'watch_prev_n_frames': watch_prev_n_frames,
+            'bpm': bpm,
+        }
+        audio_files = sorted(glob.glob(audio_files))
+        midi_files = sorted(glob.glob(midi_files))
 
         # from modules.utils.menu import select_file
         # audio_files = [select_file('./data/train')]
-        midi_files = list(map(lambda x: x.replace('.wav', '.mid'), audio_files))
-        
-        kwargs_dataset = {
-            'sr': self.sr,
-            'n_fft': self.n_fft,
-            'win_length': self.win_length,
-            'hop_length': self.hop_length,
-            'watch_prev_n_frames': self.watch_prev_n_frames,
-            'bpm': self.bpm,
-        }
+        # midi_files = list(map(lambda x: x.replace('.wav', '.mid'), audio_files))
+        transform = PadPrefix(pad_size=watch_prev_n_frames)
+        self.dataset = AudioMIDIDataset(audio_files, midi_files, transform, **kwargs_dataset)
 
-        transform = PadPrefix(pad_size=self.watch_prev_n_frames)
-        dataset = AudioMIDIDataset(audio_files, midi_files, transform, **kwargs_dataset)
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+    def train_dataloader(self, num_workers=None):
+        if num_workers is None:
+            num_workers = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+
+        dataloader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
 
         return dataloader
 
 
 if __name__ == '__main__':
-    from modules.preprocess import simplify_spectrogram_best_represent_each_note
+    from audio2midi.preprocess import simplify_spectrogram_best_represent_each_note
     # from modules.utils import print_matching_highlight
     
     datamodule = AudioDataModule(batch_size=1)

@@ -3,7 +3,7 @@ import librosa.display
 import numpy as np 
 import sys
 import torch
-from modules.constants import NOTES
+from audio2midi.constants import NOTES
 
 
 class bcolors:

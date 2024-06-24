@@ -93,14 +93,19 @@ def midi_to_matrix(midi_file, audio_length_seconds=None, bpm=120):
 
   matrix = torch.zeros([num_frames, 88])
   matrix_last_pressed = torch.zeros(88, dtype=int)
+  unused_time = 0
   
   for msg in track:
     if msg.type == 'note_on':
-      
+      if msg.note < 21 or msg.note > 108:
+        unused_time += msg.time
+        continue
       if msg.velocity != 0:
-        matrix_last_pressed[msg.note - 21] = msg.time
+        matrix_last_pressed[msg.note - 21] = msg.time + unused_time
+        unused_time = 0
       else:
-        press_since = matrix_last_pressed[msg.note - 21]
+        press_since = matrix_last_pressed[msg.note - 21] + unused_time
+        unused_time = 0
         matrix[press_since:msg.time, msg.note - 21] = 1
       # print(KEY_TO_NOTE[msg.note], msg.time, 'on' if msg.velocity != 0 else 'off')
       

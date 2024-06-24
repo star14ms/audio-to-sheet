@@ -1,5 +1,5 @@
-from modules.utils.menu import show_menu, select_file
-from modules.utils.visualize import (
+from utils.menu import show_menu, select_file
+from utils.visualize import (
   plot_spectrogram, 
   plot_spectrogram_simplified, 
   print_matching_highlight, 

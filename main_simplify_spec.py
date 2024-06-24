@@ -4,13 +4,13 @@ import librosa
 from rich.progress import track
 from rich import print
 
-from modules.test import synth
-from modules.preprocess import get_simplified_frequency_spectrogram
-from modules.utils.midi import write_notes_to_midi
-from modules.utils import select_file, print_values_colored_by_min_max_normalizing, plot_spectrogram_simplified
-from modules.utils.scale import get_scale_from_spectrogram
-from modules.constants import NOTE_TO_KEY, NOTES
-from modules.utils.visualize import plot_spectrogram_hightlighting_pressing_notes
+from audio2midi.test import synth
+from audio2midi.preprocess import get_simplified_frequency_spectrogram
+from audio2midi.utils.midi import write_notes_to_midi
+from audio2midi.utils import select_file, print_values_colored_by_min_max_normalizing, plot_spectrogram_simplified
+from audio2midi.utils.scale import get_scale_from_spectrogram
+from audio2midi.constants import NOTE_TO_KEY, NOTES
+from audio2midi.utils.visualize import plot_spectrogram_hightlighting_pressing_notes
 
 
 def print_notes_info_to_press(amplitudes, notes_to_press, idxs_to_press, open_thresholds, scale, times, i, amplitudes_prev):

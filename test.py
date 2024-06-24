@@ -2,13 +2,13 @@ import torch
 import glob
 import time
 
-from model_lighting import Audio2MidiL # choose the model you want to train
+from audio2midi.model_lighting import Audio2MIDIL # choose the model you want to train
 from dataset import AudioMIDIDataset
 
-from modules.utils import print_matching_highlight
+from utils import print_matching_highlight
 
 
-model = Audio2MidiL() # change the model
+model = Audio2MIDIL() # change the model
 model.load_state_dict(torch.load('output/model.pth'))
 model.eval()
 

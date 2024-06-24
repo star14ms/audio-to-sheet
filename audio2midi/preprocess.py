@@ -2,11 +2,10 @@ import librosa
 import librosa.display
 import numpy as np
 
-from modules.constants import NOTE_FREQUENCIES
-from modules.utils import plot_spectrogram, plot_spectrogram_simplified
+from audio2midi.constants import NOTE_FREQUENCIES
 
 
-def get_frequency_spectrogram(audio_file, n_fft=2048, win_length=2048, hop_length=512, plot=False):
+def get_frequency_spectrogram(audio_file, n_fft=2048, win_length=2048, hop_length=512):
     # Load the audio file
     y, sr = librosa.load(audio_file)
 
@@ -15,9 +14,6 @@ def get_frequency_spectrogram(audio_file, n_fft=2048, win_length=2048, hop_lengt
 
     # Convert amplitude to decibels
     DB = librosa.amplitude_to_db(D, ref=np.max) # Shape: [Frequency, Time]: dB
-
-    if plot:
-        plot_spectrogram(DB, sr)
     
     return DB, sr
 
@@ -36,14 +32,10 @@ def simplify_spectrogram_best_represent_each_note(spectrogram, n_fft, sr):
     return spectrogram
 
 
-def get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=False, plot=False):
-    spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, plot=False)
+def get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=False):
+    spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length)
     
     if optimize:
         spectrogram = simplify_spectrogram_best_represent_each_note(spectrogram, n_fft, sr)
-        
-    # Display the spectrogram
-    if plot:
-        plot_spectrogram_simplified(spectrogram, sr, hop_length)
 
     return spectrogram, sr

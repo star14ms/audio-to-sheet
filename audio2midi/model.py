@@ -1,6 +1,8 @@
 from torch import nn
 import torch
 
+from utils.modelviz import profile_model
+
 
 class AudioTimeEncoder(nn.Module):
     def __init__(self, conv_dims=[(1, 4), (4, 8), (8, 16), (16, 32)]):
@@ -25,7 +27,7 @@ class AudioTimeEncoder(nn.Module):
 
 
 class AudioFreqEncoder(nn.Module):
-    def __init__(self, in_featrue=1025*32, hidden_dims=(2048, 1024), n_notes=88, vec_size=8):
+    def __init__(self, in_featrue=1025, hidden_dims=(512, 256), n_notes=88):
         super().__init__()
         
         self.ff_layers = nn.Sequential()
@@ -39,18 +41,14 @@ class AudioFreqEncoder(nn.Module):
             )
             self.ff_layers.add_module(f'ff_layer_{i}', module)
             
-        self.out_layer = nn.Linear(hidden_dims[-1], n_notes*vec_size)
-        self.n_notes = n_notes
-        self.vec_size = vec_size
+        self.out_layer = nn.Linear(hidden_dims[-1], n_notes)
 
     def forward(self, x, **kwargs):
         for ff_layer in self.ff_layers:
             x = ff_layer(x)
-            print(x.shape)
+            # print(x.shape)
             
         x = self.out_layer(x)
-        x = x.view(x.shape[0], self.n_notes, self.vec_size)
-
         return x
 
 
@@ -65,7 +63,7 @@ class AudioTransformerDecoder(nn.Module):
         return x
 
 
-class Audio2Midi(nn.Module):
+class Audio2MIDI(nn.Module):
     def __init__(self, conv_dims=[(1, 4), (4, 8), (8, 16), (16, 32)], hidden_dims=(2048, 1024), n_fft=2048, n_notes=88, vec_size=8, nhead=4, num_layers=4):
         super().__init__()
         n_fft = 2048
@@ -118,9 +116,9 @@ class AudioFreqEncoderOld(nn.Module):
             
         x = self.out_layer(x)
         return x
-    
 
-class Audio2MidiOld(nn.Module):
+
+class Audio2MIDIOld(nn.Module):
     def __init__(self, conv_dims=[(1, 4), (4, 8), (8, 16), (16, 32)], hidden_dims=(512, 256), n_fft=2048, n_notes=88, nhead=4, num_layers=4):
         super().__init__()
         n_freq = n_fft // 2 + 1
@@ -146,33 +144,3 @@ class Audio2MidiOld(nn.Module):
         # print(x.shape)
         return x
 
-
-def profile_model(model, inputs):
-    from thop import profile
-    macs, params = profile(model, inputs=inputs, verbose=False)
-    print(model)
-    print('모델 생성 완료! (MACs: {} G | Params: {} M)'.format(
-        round(macs/1000/1000/1000, 2), 
-        round(params/1000/1000, 2),
-    ))
-
-
-if __name__ == '__main__':
-    conv_dims = [(1, 4), (4, 8), (8, 16), (16, 32)]
-    audio_length = 1 + 2*len(conv_dims)
-    batch_size = 2
-
-    model = Audio2MidiOld(conv_dims)
-    model.eval()
-
-    spec_next = torch.randn(batch_size, 1, audio_length, 1025)
-    # feature_prev = torch.randn(batch_size, 88, 8)
-    feature_prev = torch.randn(batch_size, 88)
-
-    inputs = (spec_next, feature_prev)
-    x = model(*inputs)
-    
-    # profile_model(model, inputs)
-    # from modules.utils.modelviz import draw_graphs
-    # draw_graphs(model, inputs, min_depth=1, max_depth=3, directory='./output/model_viz/', hide_module_functions=True, input_names=('spec_next', 'feature_prev'), output_names=('notes_next',))
-    
