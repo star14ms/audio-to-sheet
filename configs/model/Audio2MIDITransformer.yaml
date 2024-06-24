@@ -8,6 +8,4 @@ params:
   num_encoder_layers: 1
   num_decoder_layers: 1
   dim_feedforward: 16
-  max_len: 12
-  tgt_max_len: 4
   batch_first: false

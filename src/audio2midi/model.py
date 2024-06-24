@@ -230,10 +230,10 @@ class Audio2MIDITransformer(nn.Module):
 
 
 if __name__ == '__main__':
-    max_len = 24
+    audio_length = 24
     win_length = 12
     watch_prev_n_frames = 4
-    tgt_max_len = max_len - win_length - watch_prev_n_frames + 1
+    tgt_length = audio_length - win_length + 1
     batch_size = 2
     n_fft = 2048
     STFT_n_rows = 1 + n_fft//2
@@ -247,16 +247,14 @@ if __name__ == '__main__':
         'num_decoder_layers': 2,
         'num_encoder_layers': 2,
         'dim_feedforward': 512,
-        'max_len': max_len,
-        'tgt_max_len': tgt_max_len,
         'batch_first': False
     }
 
     model = Audio2MIDITransformer(**kwargs)
     model.eval()
 
-    spec_next = torch.randn(win_length, batch_size, STFT_n_rows)
-    feature_prev = torch.randn(tgt_max_len, batch_size, n_notes)
+    spec_next = torch.randn(audio_length, batch_size, STFT_n_rows)
+    feature_prev = torch.randn(tgt_length, batch_size, n_notes)
     print(spec_next.shape, feature_prev.shape)
 
     inputs = (spec_next, feature_prev)

@@ -168,8 +168,4 @@ def print_values_colored_by_min_max_normalizing(values):
         char = '#' if '#' in NOTES[i] else NOTES[i][0]
         text += f'{bcolors.according_to_score(score*100)}{char}{bcolors.ENDC}'
     print(text)
-
-
-if __name__ == '__main__':
-    bcolors.test()
-    
+  

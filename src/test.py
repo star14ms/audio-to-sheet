@@ -4,7 +4,6 @@ import time
 
 from audio2midi.model_lighting import Audio2MIDIL # choose the model you want to train
 from dataset import AudioMIDIDataset
-
 from utils import print_matching_highlight
 
 

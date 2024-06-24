@@ -74,7 +74,7 @@ class Audio2MIDIL(pl.LightningModule):
     
 
 class Audio2MIDITransformerL(pl.LightningModule):
-    def __init__(self, batch_size=16, threshold=0.7, audio_length=24, win_leangth=12, watch_prev_n_frames=4, lr=0.001, *args, **kwargs):
+    def __init__(self, batch_size=16, threshold=0.7, audio_length=24, win_length=12, watch_prev_n_frames=4, lr=0.001, *args, **kwargs):
         super().__init__()
         self.model = Audio2MIDITransformer(*args, **kwargs)
         self.criterion = nn.BCELoss() # multiple answers can be correct, so we use binary cross entropy loss
@@ -82,9 +82,9 @@ class Audio2MIDITransformerL(pl.LightningModule):
         self.batch_size = batch_size
         self.threshold = threshold
         self.audio_length = audio_length
-        self.win_length = win_leangth
+        self.win_length = win_length
         self.watch_prev_n_frames = watch_prev_n_frames
-        self.tgt_length = audio_length - win_leangth + 1
+        self.tgt_length = audio_length - win_length + 1
         self.lr = lr
 
         self.src_mask = nn.Transformer.generate_square_subsequent_mask(29)

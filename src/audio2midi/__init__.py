@@ -41,6 +41,4 @@ class Audio2MIDITransformerConfig(ModelConfig):
     num_encoder_layers: int = 6
     num_decoder_layers: int = 6
     dim_feedforward: int = 2048
-    max_len: int = 12
-    tgt_max_len: int = 4
     batch_first: bool = False

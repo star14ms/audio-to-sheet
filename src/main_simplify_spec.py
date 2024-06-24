@@ -6,11 +6,11 @@ from rich import print
 
 from audio2midi.test import synth
 from audio2midi.preprocess import get_simplified_frequency_spectrogram
-from audio2midi.utils.midi import write_notes_to_midi
-from audio2midi.utils import select_file, print_values_colored_by_min_max_normalizing, plot_spectrogram_simplified
-from audio2midi.utils.scale import get_scale_from_spectrogram
 from audio2midi.constants import NOTE_TO_KEY, NOTES
-from audio2midi.utils.visualize import plot_spectrogram_hightlighting_pressing_notes
+from utils.midi import write_notes_to_midi
+from utils.scale import get_scale_from_spectrogram
+from utils.visualize import plot_spectrogram_simplified, plot_spectrogram_hightlighting_pressing_notes
+from utils import select_file, print_values_colored_by_min_max_normalizing
 
 
 def print_notes_info_to_press(amplitudes, notes_to_press, idxs_to_press, open_thresholds, scale, times, i, amplitudes_prev):
@@ -34,7 +34,7 @@ def extract_notes(fs, spectrogram, sr, hop_length, open_threshold_initial, open_
 
     if listen:
         scale = get_scale_from_spectrogram(spectrogram)
-        print(scale)
+        # print(scale)
         
     amplitudes_prev = np.full(spectrogram.shape[0], -80)[None]
     amplitudes_prev2 = np.full(spectrogram.shape[0], -80)[None]
@@ -103,7 +103,7 @@ def extract_notes(fs, spectrogram, sr, hop_length, open_threshold_initial, open_
         amplitudes_prev = amplitudes.copy()
         # print([NOTE_TO_KEY[NOTES[idx]] for idx in pressed])
     
-    plot_spectrogram_hightlighting_pressing_notes(spectrogram, masks_pressed.T, sr, hop_length)
+    # plot_spectrogram_hightlighting_pressing_notes(spectrogram, masks_pressed.T, sr, hop_length)
     return notes
 
 
@@ -118,9 +118,9 @@ if __name__ == '__main__':
 
     start_frame = 0
     speed = 2.0
-    listen = False
-    plot = False
+    listen = True
+    plot = True
 
-    spectrogram, sr = get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=True, plot=plot)
+    spectrogram, sr = get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=True)
     notes = extract_notes(spectrogram[:, start_frame:], sr, hop_length, open_threshold_initial, open_threshold_weight, listen, speed)
     write_notes_to_midi(notes, 'output/main_simplify_spec.mid')

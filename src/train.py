@@ -58,7 +58,7 @@ cs.store(group="model", name="base_Audio2MIDI", node=Audio2MIDIConfig, package="
 cs.store(group="model", name="base_Audio2MIDITransformer_model", node=Audio2MIDITransformerConfig, package="model")
 
 
-@hydra.main(config_path=os.path.join('.', "configs"), config_name="config", version_base=None)
+@hydra.main(config_path=os.path.join('..', "configs"), config_name="config", version_base=None)
 def main(config: DictConfig) -> None:
     # warnings.filterwarnings('ignore')
     train(config)
