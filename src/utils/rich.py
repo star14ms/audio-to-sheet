@@ -2,6 +2,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 from rich.syntax import Syntax
 from rich.traceback import install
+from pytorch_lightning.callbacks import RichProgressBar
 install()
 
 
@@ -23,6 +24,18 @@ def new_progress():
     )
 
     return progress
+    
+    
+class RichProgressBarCustom(RichProgressBar):
+    def _get_train_description(self, current_epoch: int) -> str:
+        train_description = f"Epoch {current_epoch+1}"
+        if self.trainer.max_epochs is not None:
+            train_description += f"/{self.trainer.max_epochs}"
+        if len(self.validation_description) > len(train_description):
+            # Padding is required to avoid flickering due of uneven lengths of "Epoch X"
+            # and "Validation" Bar description
+            train_description = f"{train_description:{len(self.validation_description)}}"
+        return train_description
 
 
 if __name__ == '__main__':

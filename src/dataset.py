@@ -47,9 +47,6 @@ class AudioMIDIDataset(Dataset):
         if self.transform:
             inputs, labels = self.transform(inputs, labels)
 
-        print(audio_file.split('/')[-1])
-        print(inputs.shape, labels.shape)
-        
         return inputs, labels
 
     @staticmethod
@@ -127,9 +124,9 @@ class AudioDataModule(LightningDataModule):
             'watch_prev_n_frames': self.watch_prev_n_frames,
             'batch_size': self.batch_size,
         }
-
+        
         collate_with_param = partial(custom_collate_fn, **kwargs)
-        dataloader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers, collate_fn=collate_with_param)
+        dataloader = DataLoader(self.dataset, batch_size=1, shuffle=True, num_workers=num_workers, collate_fn=collate_with_param)
 
         return dataloader
 
@@ -155,23 +152,23 @@ if __name__ == '__main__':
         inputs, labels = data
         print(inputs.shape, labels.shape)
 
-        # Visualize whole spectrogram
-        spectrogram_simplified = simplify_spectrogram_best_represent_each_note(inputs.T, dataset.n_fft, dataset.sr)
-        plot_spectrogram_hightlighting_pressing_notes(spectrogram_simplified[:], labels.T, dataset.sr, dataset.hop_length)
+        # # Visualize whole spectrogram
+        # spectrogram_simplified = simplify_spectrogram_best_represent_each_note(inputs.T, dataset.n_fft, dataset.sr)
+        # plot_spectrogram_hightlighting_pressing_notes(spectrogram_simplified[:], labels.T, dataset.sr, dataset.hop_length)
 
-        # Visualize each moment
-        for j in range(inputs.shape[1]):
-            spectrogram = simplify_spectrogram_best_represent_each_note(inputs[j, :], dataset.n_fft, dataset.sr)
-            hot_encoded = torch.where(spectrogram > max(-80, torch.max(spectrogram)-10), spectrogram-torch.max(spectrogram)+9, 0)
-            input_ = hot_encoded.to(torch.int32)
-            label_ = labels[j].to(torch.int32)
+        # # Visualize each moment
+        # for j in range(inputs.shape[1]):
+        #     spectrogram = simplify_spectrogram_best_represent_each_note(inputs[j, :], dataset.n_fft, dataset.sr)
+        #     hot_encoded = torch.where(spectrogram > max(-80, torch.max(spectrogram)-10), spectrogram-torch.max(spectrogram)+9, 0)
+        #     input_ = hot_encoded.to(torch.int32)
+        #     label_ = labels[j].to(torch.int32)
             
-            print_matching_highlight(label_, input_)
-            input()
-        break
+        #     print_matching_highlight(label_, input_)
+        #     input()
+        # break
 
     # # DataLoader with custom collate function
-    # data_loader = DataLoader(dataset, batch_size=16, shuffle=False, collate_fn=custom_collate_fn)
+    # data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=custom_collate_fn)
 
     # for x_batches, t_prev_batches, t_batches in data_loader:
     #     print(x_batches.shape, t_prev_batches.shape, t_batches.shape)

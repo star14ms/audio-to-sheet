@@ -1,9 +1,10 @@
 import pytorch_lightning as pl
 import torch
 from torch import nn
+from rich import print
+
 from audio2midi.model import Audio2MIDI, Audio2MIDIOld, Audio2MIDITransformer
 from utils.rich import new_progress
-from torch.utils.data import TensorDataset, DataLoader, BatchSampler, SequentialSampler
 
 
 class Audio2MIDIL(pl.LightningModule):
@@ -74,60 +75,43 @@ class Audio2MIDIL(pl.LightningModule):
     
 
 class Audio2MIDITransformerL(pl.LightningModule):
-    def __init__(self, batch_size=16, audio_length=24, win_length=12, watch_prev_n_frames=4, lr=0.001, *args, **kwargs):
+    def __init__(self, batch_size=16, lr=0.001, *args, **kwargs):
         super().__init__()
+        self.batch_size = batch_size
+        self.lr = lr
+
         self.model = Audio2MIDITransformer(*args, **kwargs)
         self.criterion = nn.BCELoss() # multiple answers can be correct, so we use binary cross entropy loss
         
-        self.batch_size = batch_size
-        self.audio_length = audio_length
-        self.win_length = win_length
-        self.tgt_length = audio_length - win_length + 1
-        self.watch_prev_n_frames = watch_prev_n_frames
-        self.lr = lr
-
-        self.src_mask = nn.Transformer.generate_square_subsequent_mask(29)
-        self.tgt_mask = nn.Transformer.generate_square_subsequent_mask(11)
-        self.memory_mask = torch.triu(torch.full((11, 29), float('-inf')), diagonal=1)
-
-        self.progress = new_progress()
-        self.progress.start()
+        device = 'mps' if torch.backends.mps.is_available() else None
+        self.model.to(device)
 
     def forward(self, inputs, y_prev):
         # In Lightning, forward defines the prediction/inference actions
         return self.model(inputs, y_prev)
 
-    def training_step(self, batch):
-        x_batches, t_prev_batches, t_batches = batch
+    def training_step(self, batches):
         total_loss = 0
+        total = len(batches)
         opt = self.optimizers()
-        
-        total = len(x_batches)
-        id = self.progress.add_task(f"iter: 0/{total}", total=total)
 
         # Process each batch
-        for i, (x_batch, t_prev_batch, t_batch) in enumerate(zip(x_batches, t_prev_batches, t_batches)):
-            # Transpose to fit model expectations
-            x_batch = x_batch.transpose(0, 1)
-            t_prev_batch = t_prev_batch.transpose(0, 1)
-            t_batch = t_batch.transpose(0, 1)
+        for i, (x_batch, t_prev_batch, t_batch) in enumerate(batches):
 
             # forward + backward + optimize
             y = self.model(x_batch, t_prev_batch)
             y_prob = torch.sigmoid(y)
             loss = self.criterion(y_prob, t_batch)
             total_loss += loss
+            
+            if i == total - 1:
+                break
 
             opt.zero_grad()
             loss.backward()
             opt.step()
 
-            self.progress.update(id, advance=1, description="iter: {}/{}".format(i, total))
-            
-            self.log('train_loss', total_loss / len(x_batches), on_step=True, on_epoch=True)
-            return {'loss': total_loss / len(x_batches)}
-
-        self.progress.remove_task(id)
+        print(f"Train loss: {round(total_loss.item() / len(batches), 6)}")
         return loss
 
     def configure_optimizers(self):

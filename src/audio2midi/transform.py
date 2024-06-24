@@ -52,14 +52,14 @@ def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_fr
 
     for batch_idxs in batch_idxs_list:
         batch_idxs = torch.tensor(batch_idxs, dtype=torch.long)
-        x_batches.append(inputs[batch_idxs].unsqueeze(1))
+        x_batches.append(inputs[batch_idxs])
         
         # Calculate indices for t_prev and t
         t_prev_indices = batch_idxs[:tgt_length] + watch_prev_n_frames - 1
         t_indices = batch_idxs[:tgt_length] + watch_prev_n_frames
         
-        t_prev_batches.append(labels[t_prev_indices].unsqueeze(1))
-        t_batches.append(labels[t_indices].unsqueeze(1))
+        t_prev_batches.append(labels[t_prev_indices])
+        t_batches.append(labels[t_indices])
 
     # Convert lists to tensors by stacking
     x_batches = torch.stack(x_batches)
@@ -69,10 +69,12 @@ def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_fr
     dataset = TensorDataset(x_batches, t_prev_batches, t_batches)
     dataloader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False)
 
-    [x_batches, t_prev_batches, t_batches] = \
-        [torch.cat([x for x, _, _ in dataloader]), torch.cat([t_prev for _, t_prev, _ in dataloader]), torch.cat([t for _, _, t in dataloader])]
+    # Transpose to fit model expectations
+    x_batches = [x.transpose(0, 1) for x, _, _ in dataloader]
+    t_prev_batches = [t_prev.transpose(0, 1) for _, t_prev, _ in dataloader]
+    t_batches = [t.transpose(0, 1) for _, _, t in dataloader]
     
-    return x_batches, t_prev_batches, t_batches
+    return list(zip(x_batches, t_prev_batches, t_batches))
 
 
 if __name__ == '__main__':
@@ -90,9 +92,9 @@ if __name__ == '__main__':
     dataset = AudioMIDIDataset(audio_files, midi_files, transform=transform)
 
     # DataLoader with custom collate function
-    data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=custom_collate_fn)
+    data_loader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=custom_collate_fn)
 
-    for x_batches, t_prev_batches, t_batches in data_loader:
-        print(x_batches.shape, t_prev_batches.shape, t_batches.shape)
+    for song in data_loader:
+        for x, t_prev, t in song:
+            print(x.shape, t_prev.shape, t.shape)
         input()
-        

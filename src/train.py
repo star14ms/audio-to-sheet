@@ -18,7 +18,7 @@ from audio2midi import (
   Audio2MIDIConfig, 
   Audio2MIDITransformerConfig, 
 )
-from utils.rich import console
+from utils.rich import console, RichProgressBarCustom
 
 
 def train(config: DictConfig):
@@ -42,13 +42,20 @@ def train(config: DictConfig):
     # Initialize a trainer
     logger = TensorBoardLogger("./lightning_logs/", name=model.__class__.__name__)
     logger.log_hyperparams(params=hparams_model)
-    trainer = Trainer(max_epochs=max_epochs, logger=logger, log_every_n_steps=10, accelerator='mps' if torch.backends.mps.is_available() else None, enable_progress_bar=False)
+    
+    trainer = Trainer(
+        max_epochs=max_epochs, 
+        logger=logger, 
+        log_every_n_steps=1, 
+        accelerator='mps' if torch.backends.mps.is_available() else None,
+        callbacks=[RichProgressBarCustom()]
+    )
 
     # Train the model
     trainer.fit(model, datamodule=datamodule)
 
     # Save the model to disk (optional)
-    torch.save(model.state_dict(), '../output/model.pth')
+    torch.save(model.state_dict(), './output/model.pth')
 
 
 cs = ConfigStore.instance()

@@ -2,8 +2,6 @@ from torch import nn
 import torch
 import math
 
-from utils.modelviz import profile_model
-
 
 class AudioTimeEncoder(nn.Module):
     def __init__(self, conv_dims=[(1, 4), (4, 8), (8, 16), (16, 32)]):
@@ -172,7 +170,8 @@ class Audio2MIDITransformer(nn.Module):
         self, d_model=1025, n_notes=88, 
         nhead_encoder=5, nhead_decoder=11, 
         num_encoder_layers=6, num_decoder_layers=6, 
-        dim_feedforward=2048, batch_first=False
+        dim_feedforward=2048, batch_first=False,
+        audio_length=24, win_length=12
     ):
         super().__init__()
         self.pos_encoding = PositionalEncoding(d_model)
@@ -198,35 +197,30 @@ class Audio2MIDITransformer(nn.Module):
                 batch_first=batch_first,
             )
         , num_layers=num_decoder_layers)
+        
+        tgt_length = audio_length - win_length + 1
+        memory_mask = torch.full((tgt_length, audio_length), float('-inf'))
+        for i in range(tgt_length):
+            memory_mask[i, i:i+win_length] = 0
+        self.memory_mask = memory_mask
 
-
-    def forward(self, x, tgt, **kwargs):
-        def _get_encoder_kwargs(kwargs: dict):
-            return {
-                'mask': kwargs.get('src_mask'),
-                'src_key_padding_mask': kwargs.get('src_key_padding_mask'),
-                'is_causal': kwargs.get('src_is_causal', False),
-            }
-
-        def _get_decoder_kwargs(kwargs: dict):
-            return {
-                'tgt_mask': kwargs.get('tgt_mask'),
-                'memory_mask': kwargs.get('memory_mask'),
-                'tgt_key_padding_mask': kwargs.get('tgt_key_padding_mask'),
-                'memory_key_padding_mask': kwargs.get('memory_key_padding_mask'),
-                'tgt_is_causal': kwargs.get('tgt_is_causal', False),
-                'memory_is_causal': kwargs.get('memory_is_causal', False),
-            }
-
+    def forward(self, x, tgt):
         x = self.pos_encoding(x)
         tgt = self.pos_encoding_tgt(tgt)
-        memory = self.encoder(x, **_get_encoder_kwargs(kwargs))
+
+        memory = self.encoder(x)
         seq_len = memory.shape[0]
         memory = self.freq_encoder(memory.view(-1, memory.shape[2]))
         memory = memory.view(seq_len, -1, memory.shape[1])
-        x = self.decoder(tgt, memory, **_get_decoder_kwargs(kwargs))
+
+        x = self.decoder(tgt, memory, memory_mask=self.memory_mask)
 
         return x
+
+    def to(self, *args, **kwargs):
+        self = super().to(*args, **kwargs)
+        self.memory_mask = self.memory_mask.to(*args, **kwargs)  # Ensure the mask is moved with the model
+        return self
 
 
 if __name__ == '__main__':
@@ -244,10 +238,10 @@ if __name__ == '__main__':
         'n_notes': n_notes,
         'nhead_encoder': 5,
         'nhead_decoder': 11,
-        'num_decoder_layers': 2,
-        'num_encoder_layers': 2,
-        'dim_feedforward': 512,
-        'batch_first': False
+        'num_decoder_layers': 1,
+        'num_encoder_layers': 1,
+        'dim_feedforward': 16,
+        'batch_first': False,
     }
 
     model = Audio2MIDITransformer(**kwargs)
@@ -261,7 +255,12 @@ if __name__ == '__main__':
     x = model(*inputs)
     print(x.shape)
     
-    profile_model(model, inputs)
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from utils.modelviz import profile_model
+
+    # profile_model(model, inputs)
     # from modules.utils.modelviz import draw_graphs
     # draw_graphs(model, inputs, min_depth=1, max_depth=3, directory='./output/model_viz/', hide_module_functions=True, input_names=('spec_next', 'feature_prev'), output_names=('notes_next',))
     
