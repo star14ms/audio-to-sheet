@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import TensorDataset, DataLoader, BatchSampler, SequentialSampler
 from rich.progress import track
 
 
@@ -36,3 +37,62 @@ class PadPrefix:
         return \
             torch.cat((torch.full((self.pad_size, inputs.shape[1]), -80), inputs), dim=0), \
             torch.cat((torch.zeros((self.pad_size, labels.shape[1])), labels), dim=0)
+
+
+def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_frames=4, batch_size=16):
+    inputs, labels = batch[0] # one batch only
+    tgt_length = audio_length - watch_n_frames + 1
+
+    batch_idxs_list = list(BatchSampler(SequentialSampler(range(inputs.size(0))), audio_length, True))
+
+    # Precompute the batched inputs and labels
+    x_batches = []
+    t_prev_batches = []
+    t_batches = []
+
+    for batch_idxs in batch_idxs_list:
+        batch_idxs = torch.tensor(batch_idxs, dtype=torch.long)
+        x_batches.append(inputs[batch_idxs].unsqueeze(1))
+        
+        # Calculate indices for t_prev and t
+        t_prev_indices = batch_idxs[:tgt_length] + watch_prev_n_frames - 1
+        t_indices = batch_idxs[:tgt_length] + watch_prev_n_frames
+        
+        t_prev_batches.append(labels[t_prev_indices].unsqueeze(1))
+        t_batches.append(labels[t_indices].unsqueeze(1))
+
+    # Convert lists to tensors by stacking
+    x_batches = torch.stack(x_batches)
+    t_prev_batches = torch.stack(t_prev_batches)
+    t_batches = torch.stack(t_batches)
+    
+    dataset = TensorDataset(x_batches, t_prev_batches, t_batches)
+    dataloader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False)
+
+    [x_batches, t_prev_batches, t_batches] = \
+        [torch.cat([x for x, _, _ in dataloader]), torch.cat([t_prev for _, t_prev, _ in dataloader]), torch.cat([t for _, _, t in dataloader])]
+    
+    return x_batches, t_prev_batches, t_batches
+
+
+if __name__ == '__main__':
+    from torch.utils.data import TensorDataset, DataLoader, BatchSampler, SequentialSampler
+    import glob
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from dataset import AudioMIDIDataset
+
+    transform = PadPrefix(pad_size=4)
+
+    audio_files = sorted(glob.glob('./data/train/*.wav'))
+    midi_files = sorted(glob.glob('./data/train/*.mid'))
+    dataset = AudioMIDIDataset(audio_files, midi_files, transform=transform)
+
+    # DataLoader with custom collate function
+    data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=custom_collate_fn)
+
+    for x_batches, t_prev_batches, t_batches in data_loader:
+        print(x_batches.shape, t_prev_batches.shape, t_batches.shape)
+        input()
+        

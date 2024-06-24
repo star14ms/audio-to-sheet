@@ -6,4 +6,7 @@ params:
   win_length: 2048
   hop_length: 512
   bpm: 120
-  watch_prev_n_frames: 1
+  audio_length: 24
+  watch_n_frames: 12
+  watch_prev_n_frames: 4
+  batch_size: 16

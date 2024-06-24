@@ -48,7 +48,7 @@ def train(config: DictConfig):
     trainer.fit(model, datamodule=datamodule)
 
     # Save the model to disk (optional)
-    torch.save(model.state_dict(), 'output/model.pth')
+    torch.save(model.state_dict(), '../output/model.pth')
 
 
 cs = ConfigStore.instance()
