@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import TensorDataset, DataLoader, BatchSampler, SequentialSampler
+from torch.utils.data import TensorDataset, DataLoader
 from rich.progress import track
 
 
@@ -39,11 +39,15 @@ class PadPrefix:
             torch.cat((torch.zeros((self.pad_size, labels.shape[1])), labels), dim=0)
 
 
-def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_frames=4, batch_size=16):
+def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_frames=4, batch_size=16, shuffle=True):
     inputs, labels = batch[0] # one batch only
     tgt_length = audio_length - watch_n_frames + 1
+    
+    idxes = torch.arange(inputs.size(0))
+    batch_idxs_list = idxes.unfold(0, audio_length, tgt_length)
 
-    batch_idxs_list = list(BatchSampler(SequentialSampler(range(inputs.size(0))), audio_length, True))
+    if shuffle:
+        batch_idxs_list = batch_idxs_list[torch.randperm(batch_idxs_list.size(0))]
 
     # Precompute the batched inputs and labels
     x_batches = []
@@ -78,7 +82,7 @@ def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_fr
 
 
 if __name__ == '__main__':
-    from torch.utils.data import TensorDataset, DataLoader, BatchSampler, SequentialSampler
+    from torch.utils.data import TensorDataset, DataLoader
     import glob
     import sys
     import os
@@ -92,7 +96,7 @@ if __name__ == '__main__':
     dataset = AudioMIDIDataset(audio_files, midi_files, transform=transform)
 
     # DataLoader with custom collate function
-    data_loader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=custom_collate_fn)
+    data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=custom_collate_fn)
 
     for song in data_loader:
         for x, t_prev, t in song:

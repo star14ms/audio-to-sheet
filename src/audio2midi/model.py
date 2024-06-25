@@ -170,8 +170,8 @@ class Audio2MIDITransformer(nn.Module):
         self, d_model=1025, n_notes=88, 
         nhead_encoder=5, nhead_decoder=11, 
         num_encoder_layers=6, num_decoder_layers=6, 
-        dim_feedforward=2048, batch_first=False,
-        audio_length=24, win_length=12
+        dim_feedforward_encoder=2048, dim_feedforward_decoder=256, 
+        batch_first=False, audio_length=24, win_length=12
     ):
         super().__init__()
         self.pos_encoding = PositionalEncoding(d_model)
@@ -180,7 +180,7 @@ class Audio2MIDITransformer(nn.Module):
             nn.TransformerEncoderLayer(
                 d_model=d_model, 
                 nhead=nhead_encoder, 
-                dim_feedforward=dim_feedforward, 
+                dim_feedforward=dim_feedforward_encoder, 
                 batch_first=batch_first,
             )
         , num_layers=num_encoder_layers)
@@ -193,7 +193,7 @@ class Audio2MIDITransformer(nn.Module):
             nn.TransformerDecoderLayer(
                 d_model=n_notes, 
                 nhead=nhead_decoder, 
-                dim_feedforward=dim_feedforward, 
+                dim_feedforward=dim_feedforward_decoder, 
                 batch_first=batch_first,
             )
         , num_layers=num_decoder_layers)
@@ -213,7 +213,7 @@ class Audio2MIDITransformer(nn.Module):
         memory = self.freq_encoder(memory.view(-1, memory.shape[2]))
         memory = memory.view(seq_len, -1, memory.shape[1])
 
-        x = self.decoder(tgt, memory, memory_mask=self.memory_mask)
+        x = self.decoder(tgt, memory, memory_mask=self.memory_mask[:tgt.shape[0]])
 
         return x
 
@@ -240,7 +240,8 @@ if __name__ == '__main__':
         'nhead_decoder': 11,
         'num_decoder_layers': 1,
         'num_encoder_layers': 1,
-        'dim_feedforward': 16,
+        'dim_feedforward_encoder': 16,
+        'dim_feedforward_decoder': 16,
         'batch_first': False,
     }
 

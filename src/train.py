@@ -10,14 +10,9 @@ from omegaconf import OmegaConf, DictConfig
 from rich.traceback import install
 install()
 
-from dataset import AudioDataModule
+from audio2midi import DataConfig, TrainConfig, Audio2MIDIConfig, Audio2MIDITransformerConfig
 from audio2midi.model_lighting import Audio2MIDIL, Audio2MIDITransformerL # choose the model you want to train
-from audio2midi import (
-  DataConfig,
-  TrainConfig,
-  Audio2MIDIConfig, 
-  Audio2MIDITransformerConfig, 
-)
+from dataset import AudioDataModule
 from utils.rich import console, RichProgressBarCustom
 
 
@@ -61,7 +56,7 @@ def train(config: DictConfig):
 cs = ConfigStore.instance()
 cs.store(group="data", name="base_data", node=DataConfig, package="data")
 cs.store(group="train", name="base_train", node=TrainConfig, package="train")
-cs.store(group="model", name="base_Audio2MIDI", node=Audio2MIDIConfig, package="model")
+cs.store(group="model", name="base_Audio2MIDI_model", node=Audio2MIDIConfig, package="model")
 cs.store(group="model", name="base_Audio2MIDITransformer_model", node=Audio2MIDITransformerConfig, package="model")
 
 

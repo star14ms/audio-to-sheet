@@ -40,5 +40,6 @@ class Audio2MIDITransformerConfig(ModelConfig):
     nhead_decoder: int = 11
     num_encoder_layers: int = 6
     num_decoder_layers: int = 6
-    dim_feedforward: int = 2048
+    dim_feedforward_encoder: int = 2048
+    dim_feedforward_decoder: int = 256
     batch_first: bool = False

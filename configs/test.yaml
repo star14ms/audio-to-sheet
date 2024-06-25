@@ -1,0 +1,7 @@
+defaults:
+  - data: default
+  - model: Audio2MIDITransformer
+  - train: default
+
+model_path: "output/model.pth"
+threshold: 0.01
