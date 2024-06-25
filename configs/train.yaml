@@ -2,6 +2,3 @@ defaults:
   - data: Audio2MIDIEncoder
   - model: Audio2MIDIEncoder
   - train: default
-
-model_path: "output/model.pth"
-threshold: 0.01

@@ -10,7 +10,10 @@ class DataConfig:
     win_length: int = 2048
     hop_length: int = 512
     bpm: int = 120
-    watch_prev_n_frames: int = 1
+    audio_length: int = 24
+    watch_prev_n_frames: int = 4
+    watch_prev_n_frames: int = 8
+    batch_size: int = 16
 
 @dataclass
 class TrainConfig:
@@ -35,6 +38,7 @@ class Audio2MIDIConfig(ModelConfig):
 @dataclass
 class Audio2MIDITransformerConfig(ModelConfig):
     d_model: int = 1025
+    hidden_dims: List[int] = (512, 256)
     n_notes: int = 88
     nhead_encoder: int = 5
     nhead_decoder: int = 11
@@ -42,4 +46,14 @@ class Audio2MIDITransformerConfig(ModelConfig):
     num_decoder_layers: int = 6
     dim_feedforward_encoder: int = 2048
     dim_feedforward_decoder: int = 256
+    batch_first: bool = False
+
+@dataclass
+class AudioEncoderConfig:
+    d_model: int = 1025
+    hidden_dims: List[int] = (512, 256)
+    n_notes: int = 88
+    nhead_encoder: int = 5
+    num_encoder_layers: int = 6
+    dim_feedforward: int = 2048
     batch_first: bool = False

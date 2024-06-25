@@ -1,4 +1,0 @@
-defaults:
-  - data: default
-  - model: Audio2MIDITransformer
-  - train: default

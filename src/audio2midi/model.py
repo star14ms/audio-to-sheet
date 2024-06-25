@@ -3,28 +3,6 @@ import torch
 import math
 
 
-class AudioTimeEncoder(nn.Module):
-    def __init__(self, conv_dims=[(1, 4), (4, 8), (8, 16), (16, 32)]):
-        super().__init__()
-        
-        self.conv_layers = nn.Sequential()
-        for i, (in_channels, out_channels) in enumerate(conv_dims):
-            conv_black = nn.Sequential(
-                nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 1), padding=(0, 0)),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(),
-            )
-
-            self.conv_layers.add_module(f'conv_block_{i}', conv_black)
-            
-    def forward(self, x, **kwargs):
-        for conv_block in self.conv_layers:
-            x = conv_block(x)
-            # print(x.shape)
-            
-        return x
-
-
 class AudioFreqEncoder(nn.Module):
     def __init__(self, in_featrue=1025, hidden_dims=(512, 256), n_notes=88):
         super().__init__()
@@ -62,88 +40,6 @@ class AudioTransformerDecoder(nn.Module):
         return x
 
 
-class Audio2MIDI(nn.Module):
-    def __init__(self, conv_dims=[(1, 4), (4, 8), (8, 16), (16, 32)], hidden_dims=(2048, 1024), n_fft=2048, n_notes=88, vec_size=8, nhead=4, num_layers=4):
-        super().__init__()
-        n_fft = 2048
-        n_freq = n_fft // 2 + 1
-        
-        self.audio_length = 1 + 2*len(conv_dims)
-        self.time_encoder = AudioTimeEncoder(conv_dims)
-        self.freq_encoder = AudioFreqEncoder(in_featrue=n_freq*conv_dims[-1][-1], hidden_dims=hidden_dims, n_notes=n_notes, vec_size=vec_size)
-        self.attn = AudioTransformerDecoder(out_dim=vec_size, nhead=nhead, num_layers=num_layers)
-        self.predictor = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(n_notes*vec_size, n_notes),
-        )
-
-    def forward(self, x, featrue_prev, **kwargs):
-        x = self.time_encoder(x)
-        x = torch.squeeze(x, dim=2)
-        x = x.view(x.shape[0], -1)
-        print(x.shape)
-        featrue_next = self.freq_encoder(x)
-        print(featrue_next.shape)
-        x = self.attn(featrue_next, featrue_prev)
-        print(x.shape)
-        x = self.predictor(x)
-        print(x.shape)
-        return x
-
-
-class AudioFreqEncoderOld(nn.Module):
-    def __init__(self, in_featrue=1025, hidden_dims=(512, 256), n_notes=88, n_channels=32):
-        super().__init__()
-        
-        self.ff_layers = nn.Sequential()
-        feature_sizes = [in_featrue] + [*hidden_dims]
-
-        for i in range(len(feature_sizes)-1):
-            module = nn.Sequential(
-                nn.Linear(feature_sizes[i], feature_sizes[i+1]),
-                nn.ReLU(),
-                nn.BatchNorm1d(n_channels)
-            )
-            self.ff_layers.add_module(f'ff_layer_{i}', module)
-            
-        self.out_layer = nn.Linear(hidden_dims[-1], n_notes)
-
-    def forward(self, x, **kwargs):
-        for ff_layer in self.ff_layers:
-            x = ff_layer(x)
-            # print(x.shape)
-            
-        x = self.out_layer(x)
-        return x
-
-
-class Audio2MIDIOld(nn.Module):
-    def __init__(self, conv_dims=[(1, 4), (4, 8), (8, 16), (16, 32)], hidden_dims=(512, 256), n_fft=2048, n_notes=88, nhead=4, num_layers=4):
-        super().__init__()
-        n_freq = n_fft // 2 + 1
-        
-        self.audio_length = 1 + 2*len(conv_dims)
-        self.n_notes = n_notes
-        self.time_encoder = AudioTimeEncoder(conv_dims)
-        self.freq_encoder = AudioFreqEncoderOld(in_featrue=n_freq, hidden_dims=hidden_dims, n_notes=n_notes, n_channels=conv_dims[-1][-1])
-        self.predictor = AudioTransformerDecoder(out_dim=n_notes, nhead=nhead, num_layers=num_layers)
-        self.out_layer = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(conv_dims[-1][-1]*n_notes, n_notes),
-        )
-
-    def forward(self, x, y_prev, **kwargs):
-        x = self.time_encoder(x)
-        x = x.squeeze(2)
-        # print(x.shape)
-        x = self.freq_encoder(x)
-        # print(x.shape)
-        x = self.predictor(x, y_prev.unsqueeze(1).expand(-1, 32, -1))
-        x = self.out_layer(x)
-        # print(x.shape)
-        return x
-
-
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         super(PositionalEncoding, self).__init__()
@@ -167,11 +63,11 @@ class PositionalEncoding(nn.Module):
 
 class Audio2MIDITransformer(nn.Module):
     def __init__(
-        self, d_model=1025, n_notes=88, 
+        self, d_model=1025, hidden_dims=(512, 256), n_notes=88, 
         nhead_encoder=5, nhead_decoder=11, 
         num_encoder_layers=6, num_decoder_layers=6, 
         dim_feedforward_encoder=2048, dim_feedforward_decoder=256, 
-        batch_first=False, audio_length=24, win_length=12
+        batch_first=False, audio_length=24, win_length=13
     ):
         super().__init__()
         self.pos_encoding = PositionalEncoding(d_model)
@@ -184,9 +80,10 @@ class Audio2MIDITransformer(nn.Module):
                 batch_first=batch_first,
             )
         , num_layers=num_encoder_layers)
+        
         self.freq_encoder = AudioFreqEncoder(
             in_featrue=d_model, 
-            hidden_dims=(512, 256), 
+            hidden_dims=hidden_dims, 
             n_notes=n_notes
         )
         self.decoder = nn.TransformerDecoder(
@@ -223,36 +120,78 @@ class Audio2MIDITransformer(nn.Module):
         return self
 
 
+class AudioEncoder(nn.Module):
+    def __init__(
+        self, d_model=1025, hidden_dims=(512, 256), n_notes=88,
+        nhead_encoder=5,
+        num_encoder_layers=6,
+        dim_feedforward=2048,
+        batch_first=False
+    ):
+        super().__init__()
+        self.pos_encoding = PositionalEncoding(d_model)
+        self.encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(
+                d_model=d_model, 
+                nhead=nhead_encoder, 
+                dim_feedforward=dim_feedforward, 
+                batch_first=batch_first,
+            )
+        , num_layers=num_encoder_layers)
+
+        self.freq_encoder = AudioFreqEncoder(
+            in_featrue=d_model, 
+            hidden_dims=hidden_dims, 
+            n_notes=n_notes
+        )
+
+    def forward(self, x):
+        x = self.pos_encoding(x)
+        x = self.encoder(x)
+        seq_len = x.shape[0]
+        x = self.freq_encoder(x.view(-1, x.shape[2]))
+        x = x.view(seq_len, -1, x.shape[1])
+
+        return x
+
+
 if __name__ == '__main__':
     audio_length = 24
-    win_length = 12
+    watch_next_n_frames = 8
     watch_prev_n_frames = 4
+    win_length = watch_prev_n_frames + 1 + watch_next_n_frames
     tgt_length = audio_length - win_length + 1
     batch_size = 2
     n_fft = 2048
     STFT_n_rows = 1 + n_fft//2
     n_notes = 88
-    
-    kwargs = {
-        'd_model': STFT_n_rows,
-        'n_notes': n_notes,
-        'nhead_encoder': 5,
-        'nhead_decoder': 11,
-        'num_decoder_layers': 1,
-        'num_encoder_layers': 1,
-        'dim_feedforward_encoder': 16,
-        'dim_feedforward_decoder': 16,
-        'batch_first': False,
-    }
 
-    model = Audio2MIDITransformer(**kwargs)
+    # model = Audio2MIDITransformer(
+    #     d_model=STFT_n_rows,
+    #     n_notes=n_notes,
+    #     nhead_encoder=5,
+    #     nhead_decoder=11,
+    #     num_decoder_layers=1,
+    #     num_encoder_layers=1,
+    #     dim_feedforward_encoder=16,
+    #     dim_feedforward_decoder=16,
+    #     batch_first=False
+    # )
+    model = AudioEncoder(
+        d_model=STFT_n_rows,
+        n_notes=n_notes,
+        nhead_encoder=5,
+        num_encoder_layers=1,
+        dim_feedforward=16,
+        batch_first=False
+    )
     model.eval()
 
     spec_next = torch.randn(audio_length, batch_size, STFT_n_rows)
-    feature_prev = torch.randn(tgt_length, batch_size, n_notes)
-    print(spec_next.shape, feature_prev.shape)
+    # feature_prev = torch.randn(tgt_length, batch_size, n_notes)
+    # print(spec_next.shape, feature_prev.shape)
 
-    inputs = (spec_next, feature_prev)
+    inputs = (spec_next,)
     x = model(*inputs)
     print(x.shape)
     
@@ -261,7 +200,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     from utils.modelviz import profile_model
 
-    # profile_model(model, inputs)
+    profile_model(model, inputs)
     # from modules.utils.modelviz import draw_graphs
     # draw_graphs(model, inputs, min_depth=1, max_depth=3, directory='./output/model_viz/', hide_module_functions=True, input_names=('spec_next', 'feature_prev'), output_names=('notes_next',))
     

@@ -10,8 +10,8 @@ from omegaconf import OmegaConf, DictConfig
 from rich.traceback import install
 install()
 
-from audio2midi import DataConfig, TrainConfig, Audio2MIDIConfig, Audio2MIDITransformerConfig
-from audio2midi.model_lighting import Audio2MIDIL, Audio2MIDITransformerL # choose the model you want to train
+from audio2midi import DataConfig, TrainConfig, Audio2MIDITransformerConfig, AudioEncoderConfig
+from audio2midi.model_lighting import Audio2MIDITransformerL, Audio2EncoderL # choose the model you want to train
 from dataset import AudioDataModule
 from utils.rich import console, RichProgressBarCustom
 
@@ -22,16 +22,19 @@ def train(config: DictConfig):
     hparams_train = OmegaConf.to_container(config.train.params, resolve=True)
     max_epochs = hparams_train.pop("epoch", None)
 
-    datamodule = AudioDataModule(**hparams_data)
-
-    if config.model.name == 'Audio2MIDI':
-        hparams_shared = {
-            'n_fft': hparams_data['n_fft'],
-            'watch_prev_n_frames': hparams_data['watch_prev_n_frames'],
-        }
-        model = Audio2MIDIL(**hparams_model, **hparams_train, **hparams_shared)
-    elif config.model.name == 'Audio2MIDITransformer':
+    if config.model.name == 'Audio2MIDITransformer':
+        datamodule = AudioDataModule(t_prev=True, **hparams_data)
         model = Audio2MIDITransformerL(**hparams_model, **hparams_train)
+    elif config.model.name == 'AudioEncoder':
+        datamodule = AudioDataModule(**hparams_data)
+        shared_parames = {
+            'watch_prev_n_frames': hparams_data['watch_prev_n_frames'],
+            'watch_next_n_frames': hparams_data['watch_next_n_frames'],
+        }
+        model = Audio2EncoderL(**hparams_model, **shared_parames, **hparams_train)
+    else:
+        raise ValueError(f"Model name {config.model.name} not found")
+    
     console.log(OmegaConf.to_yaml(config))
 
     # Initialize a trainer
@@ -56,11 +59,11 @@ def train(config: DictConfig):
 cs = ConfigStore.instance()
 cs.store(group="data", name="base_data", node=DataConfig, package="data")
 cs.store(group="train", name="base_train", node=TrainConfig, package="train")
-cs.store(group="model", name="base_Audio2MIDI_model", node=Audio2MIDIConfig, package="model")
 cs.store(group="model", name="base_Audio2MIDITransformer_model", node=Audio2MIDITransformerConfig, package="model")
+cs.store(group="model", name="base_AudioEncoder_model", node=AudioEncoderConfig, package="model")
 
 
-@hydra.main(config_path=os.path.join('..', "configs"), config_name="config", version_base=None)
+@hydra.main(config_path=os.path.join('..', "configs"), config_name="train", version_base=None)
 def main(config: DictConfig) -> None:
     # warnings.filterwarnings('ignore')
     train(config)

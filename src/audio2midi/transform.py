@@ -30,17 +30,19 @@ class AlignTimeDimension:
 
 # add one colum to the beginning of inputs as no sound at the beginning
 class PadPrefix:
-    def __init__(self, pad_size):
-        self.pad_size = pad_size
+    def __init__(self, prefix_size, min_db=-80):
+        self.prefix_size = prefix_size
+        self.min_db = min_db
 
     def __call__(self, inputs, labels):
         return \
-            torch.cat((torch.full((self.pad_size, inputs.shape[1]), -80), inputs), dim=0), \
-            torch.cat((torch.zeros((self.pad_size, labels.shape[1])), labels), dim=0)
+            torch.cat((torch.full((self.prefix_size, inputs.shape[1]), self.min_db), inputs), dim=0), \
+            torch.cat((torch.zeros((self.prefix_size, labels.shape[1])), labels), dim=0)
 
 
-def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_frames=4, batch_size=16, shuffle=True):
+def collate_fn_making_t_prev(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frames=12, batch_size=16, shuffle=True):
     inputs, labels = batch[0] # one batch only
+    watch_n_frames = watch_prev_n_frames + 1 + watch_next_n_frames
     tgt_length = audio_length - watch_n_frames + 1
     
     idxes = torch.arange(inputs.size(0))
@@ -81,6 +83,41 @@ def custom_collate_fn(batch, audio_length=24, watch_n_frames=12, watch_prev_n_fr
     return list(zip(x_batches, t_prev_batches, t_batches))
 
 
+def collate_fn(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frames=12, batch_size=16, shuffle=True):
+    inputs, labels = batch[0] # one batch only
+    watch_n_frames = watch_prev_n_frames + 1 + watch_next_n_frames
+    tgt_length = audio_length - watch_n_frames + 1
+
+    idxes = torch.arange(inputs.size(0))
+    batch_idxs_list = idxes.unfold(0, audio_length, tgt_length)
+
+    if shuffle:
+        batch_idxs_list = batch_idxs_list[torch.randperm(batch_idxs_list.size(0))]
+
+    # Precompute the batched inputs and labels
+    x_batches = []
+    t_batches = []
+
+    for batch_idxs in batch_idxs_list:
+        batch_idxs = torch.tensor(batch_idxs, dtype=torch.long)
+        x_batches.append(inputs[batch_idxs])
+        t_indices = batch_idxs[:tgt_length] + watch_prev_n_frames
+        t_batches.append(labels[t_indices])
+
+    # Convert lists to tensors by stacking
+    x_batches = torch.stack(x_batches)
+    t_batches = torch.stack(t_batches)
+
+    dataset = TensorDataset(x_batches, t_batches)
+    dataloader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False)
+
+    # Transpose to fit model expectations
+    x_batches = [x.transpose(0, 1) for x, _ in dataloader]
+    t_batches = [t.transpose(0, 1) for _, t in dataloader]
+    
+    return list(zip(x_batches, t_batches))
+
+
 if __name__ == '__main__':
     from torch.utils.data import TensorDataset, DataLoader
     import glob
@@ -96,9 +133,9 @@ if __name__ == '__main__':
     dataset = AudioMIDIDataset(audio_files, midi_files, transform=transform)
 
     # DataLoader with custom collate function
-    data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=custom_collate_fn)
+    data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_fn)
 
     for song in data_loader:
-        for x, t_prev, t in song:
-            print(x.shape, t_prev.shape, t.shape)
+        for batch in song:
+            print(*[x.shape for x in batch])
         input()

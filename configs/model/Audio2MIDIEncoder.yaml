@@ -1,0 +1,10 @@
+name: "AudioEncoder"
+
+params:
+  d_model: 1025
+  hidden_dims: [512, 256]
+  n_notes: 88
+  nhead_encoder: 5
+  num_encoder_layers: 4
+  dim_feedforward: 2048
+  batch_first: false

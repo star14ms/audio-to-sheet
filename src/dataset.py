@@ -13,7 +13,7 @@ from functools import partial
 
 from utils.midi import midi_to_matrix, second_per_tick
 from utils.visualize import plot_spectrogram_hightlighting_pressing_notes
-from audio2midi.transform import AlignTimeDimension, PadPrefix, custom_collate_fn
+from audio2midi.transform import AlignTimeDimension, PadPrefix, collate_fn_making_t_prev, collate_fn
 
 
 class AudioMIDIDataset(Dataset):
@@ -89,16 +89,17 @@ class AudioDataModule(LightningDataModule):
     def __init__(
         self, 
         audio_files='data/train/*.wav', midi_files='data/train/*.mid', 
-        batch_size=16, 
+        batch_size=16, t_prev=False,
         sr=22050, n_fft=2048, win_length=2048, hop_length=512, bpm=120, 
-        audio_length=24, watch_n_frames=12, watch_prev_n_frames=4
+        audio_length=24, watch_next_n_frames=8, watch_prev_n_frames=4,
     ):
         super().__init__()
         self.batch_size = batch_size
         self.audio_length = audio_length
         self.win_length = win_length
-        self.watch_n_frames = watch_n_frames
         self.watch_prev_n_frames = watch_prev_n_frames
+        self.watch_next_n_frames = watch_next_n_frames
+        self.t_prev = t_prev
 
         kwargs_dataset = {
             'sr': sr,
@@ -111,7 +112,7 @@ class AudioDataModule(LightningDataModule):
         audio_files = sorted(glob.glob(audio_files))
         midi_files = sorted(glob.glob(midi_files))
 
-        transform = PadPrefix(pad_size=watch_prev_n_frames)
+        transform = PadPrefix(prefix_size=watch_prev_n_frames)
         self.dataset = AudioMIDIDataset(audio_files, midi_files, transform, **kwargs_dataset)
 
     def train_dataloader(self, num_workers=None):
@@ -120,12 +121,15 @@ class AudioDataModule(LightningDataModule):
             
         kwargs = {
             'audio_length': self.audio_length,
-            'watch_n_frames': self.watch_n_frames,
+            'watch_next_n_frames': self.watch_next_n_frames,
             'watch_prev_n_frames': self.watch_prev_n_frames,
             'batch_size': self.batch_size,
         }
         
-        collate_with_param = partial(custom_collate_fn, **kwargs)
+        if self.t_prev:
+            collate_with_param = partial(collate_fn_making_t_prev, **kwargs)
+        else:
+            collate_with_param = partial(collate_fn, **kwargs)
         dataloader = DataLoader(self.dataset, batch_size=1, shuffle=True, num_workers=num_workers, collate_fn=collate_with_param)
 
         return dataloader

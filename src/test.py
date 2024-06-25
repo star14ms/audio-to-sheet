@@ -24,7 +24,7 @@ def test(config):
     hparams_model = OmegaConf.to_container(config.model.params, resolve=True)
     audio_length = hparams_data.pop('audio_length')
     watch_prev_n_frames = hparams_data.pop('watch_prev_n_frames')
-    _ = hparams_data.pop('watch_n_frames')
+    _ = hparams_data.pop('watch_next_n_frames')
     _ = hparams_data.pop('batch_size')
 
     model = Audio2MIDITransformerL(**hparams_model) # change the model

@@ -2,6 +2,7 @@ name: "Audio2MIDITransformer"
 
 params:
   d_model: 1025
+  hidden_dims: [512, 256]
   n_notes: 88
   nhead_encoder: 5
   nhead_decoder: 11
