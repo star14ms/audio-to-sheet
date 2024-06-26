@@ -1,4 +1,4 @@
-name: "Audio2MIDIEncoder"
+name: "AudioEncoder"
 
 params:
   sr: 22050

@@ -62,7 +62,7 @@ class RichProgressBarCustom(RichProgressBar):
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self.progress.update(self.train_progress_bar0_id, advance=1)
+        self.progress.update(self.train_progress_bar0_id, advance=self._trainer.current_epoch + 1)
         if self._trainer.current_epoch + 1 == self._trainer.max_epochs:
             self.progress.stop()
         self._update_metrics(trainer, pl_module)

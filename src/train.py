@@ -17,7 +17,6 @@ from dataset import AudioDataModule
 from utils.lightning_custom import RichProgressBarCustom
 
 
-
 def train(config: DictConfig):
     hparams_data = OmegaConf.to_container(config.data.params, resolve=True)
     hparams_model = OmegaConf.to_container(config.model.params, resolve=True)

@@ -9,12 +9,12 @@ from utils.visualize import plot_spectrograms_simplified
 
 
 class Audio2MIDITransformerL(pl.LightningModule):
-    def __init__(self, batch_size=16, lr=0.001, *args, **kwargs):
+    def __init__(self, lr=0.001, watch_prev_n_frames=4, watch_next_n_frames=8, *args, **kwargs):
         super().__init__()
-        self.batch_size = batch_size
         self.lr = lr
+        self.win_length = watch_prev_n_frames + 1 + watch_next_n_frames
 
-        self.model = Audio2MIDITransformer(*args, **kwargs)
+        self.model = Audio2MIDITransformer(win_length=self.win_length, *args, **kwargs)
         self.criterion = nn.BCELoss() # multiple answers can be correct, so we use binary cross entropy loss
         
         device = 'mps' if torch.backends.mps.is_available() else None
@@ -57,9 +57,8 @@ class Audio2MIDITransformerL(pl.LightningModule):
     
     
 class Audio2EncoderL(pl.LightningModule):
-    def __init__(self, batch_size=16, lr=0.001, watch_prev_n_frames=4, watch_next_n_frames=12, *args, **kwargs):
+    def __init__(self, lr=0.001, watch_prev_n_frames=4, watch_next_n_frames=12, *args, **kwargs):
         super().__init__()
-        self.batch_size = batch_size
         self.lr = lr
         self.watch_prev_n_frames = watch_prev_n_frames
         self.watch_next_n_frames = watch_next_n_frames
@@ -106,7 +105,7 @@ class Audio2EncoderL(pl.LightningModule):
         return super().train_dataloader()
     
     def visualize_dataset(self, x, y, t):
-        x, y, t = x.squeeze().T.detach().cpu(), y.squeeze().T.detach().cpu(), t.squeeze().T.detach().cpu()
+        x, y, t = x[:,0,:].squeeze().T.detach().cpu(), y[:,0,:].squeeze().T.detach().cpu(), t[:,0,:].squeeze().T.detach().cpu()
         
         x_simplified = simplify_spectrogram_best_represent_each_note(x)
         pad_prev = torch.zeros([y.shape[0], self.watch_prev_n_frames])
