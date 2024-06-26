@@ -7,13 +7,15 @@ import warnings
 import hydra
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf, DictConfig
+from rich import print
 from rich.traceback import install
 install()
 
 from audio2midi import DataConfig, TrainConfig, Audio2MIDITransformerConfig, AudioEncoderConfig
 from audio2midi.model_lighting import Audio2MIDITransformerL, Audio2EncoderL # choose the model you want to train
 from dataset import AudioDataModule
-from utils.rich import console, RichProgressBarCustom
+from utils.lightning_custom import RichProgressBarCustom
+
 
 
 def train(config: DictConfig):
@@ -21,21 +23,23 @@ def train(config: DictConfig):
     hparams_model = OmegaConf.to_container(config.model.params, resolve=True)
     hparams_train = OmegaConf.to_container(config.train.params, resolve=True)
     max_epochs = hparams_train.pop("epoch", None)
+    
+    hparams_shared = {
+        'audio_length': hparams_data['audio_length'],
+        'watch_prev_n_frames': hparams_data['watch_prev_n_frames'],
+        'watch_next_n_frames': hparams_data['watch_next_n_frames'],
+    }
 
     if config.model.name == 'Audio2MIDITransformer':
         datamodule = AudioDataModule(t_prev=True, **hparams_data)
-        model = Audio2MIDITransformerL(**hparams_model, **hparams_train)
+        model = Audio2MIDITransformerL(**hparams_model, **hparams_shared, **hparams_train)
     elif config.model.name == 'AudioEncoder':
         datamodule = AudioDataModule(**hparams_data)
-        shared_parames = {
-            'watch_prev_n_frames': hparams_data['watch_prev_n_frames'],
-            'watch_next_n_frames': hparams_data['watch_next_n_frames'],
-        }
-        model = Audio2EncoderL(**hparams_model, **shared_parames, **hparams_train)
+        model = Audio2EncoderL(**hparams_model, **hparams_shared, **hparams_train)
     else:
         raise ValueError(f"Model name {config.model.name} not found")
     
-    console.log(OmegaConf.to_yaml(config))
+    print(OmegaConf.to_yaml(config))
 
     # Initialize a trainer
     logger = TensorBoardLogger("./lightning_logs/", name=model.__class__.__name__)

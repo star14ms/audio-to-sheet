@@ -8,6 +8,7 @@ import hydra
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf, DictConfig
 from rich.traceback import install
+from rich import print
 from rich.progress import track
 install()
 
@@ -17,7 +18,6 @@ from audio2midi.preprocess import simplify_spectrogram_best_represent_each_note
 from dataset import AudioMIDIDataset
 from utils import print_matching_highlight
 from utils.visualize import plot_spectrogram_hightlighting_pressing_notes, plot_spectrograms_simplified
-from utils.rich import console
 
 
 def test(config):
@@ -40,7 +40,7 @@ def test(config):
     else:
         raise ValueError(f"Model name {config.model.name} not found")
 
-    console.log(OmegaConf.to_yaml(config))
+    print(OmegaConf.to_yaml(config))
     model.load_state_dict(torch.load(config.model_path))
     model.eval()
 
