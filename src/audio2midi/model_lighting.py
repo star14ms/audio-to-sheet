@@ -62,8 +62,9 @@ class Audio2EncoderL(pl.LightningModule):
         self.lr = lr
         self.watch_prev_n_frames = watch_prev_n_frames
         self.watch_next_n_frames = watch_next_n_frames
+        self.win_length = watch_prev_n_frames + 1 + watch_next_n_frames
 
-        self.model = AudioEncoder(*args, **kwargs)
+        self.model = AudioEncoder(win_length=self.win_length, *args, **kwargs)
         self.criterion = nn.BCELoss() # multiple answers can be correct, so we use binary cross entropy loss
         
         device = 'mps' if torch.backends.mps.is_available() else None
@@ -83,8 +84,8 @@ class Audio2EncoderL(pl.LightningModule):
 
             # forward + backward + optimize
             y = self.model(x)
-            y = torch.sigmoid(y[self.watch_prev_n_frames:-self.watch_next_n_frames])
-            loss = self.criterion(y, t)
+            y_prob = torch.sigmoid(y[self.watch_prev_n_frames:-self.watch_next_n_frames])
+            loss = self.criterion(y_prob, t)
             total_loss += loss
 
             if i == total - 1:

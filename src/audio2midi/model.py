@@ -3,6 +3,27 @@ import torch
 import math
 
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term_even = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term_odd = torch.exp(torch.arange(1, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term_even)
+        pe[:, 1::2] = torch.cos(position * div_term_odd)
+        pe = pe.unsqueeze(0)
+
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:, :x.shape[1]]
+
+        return self.dropout(x)
+
+
 class AudioFreqEncoder(nn.Module):
     def __init__(self, in_featrue=1025, hidden_dims=(512, 256), n_notes=88):
         super().__init__()
@@ -38,27 +59,6 @@ class AudioTransformerDecoder(nn.Module):
     def forward(self, prev, memory, **kwargs):
         x = self.decoder(prev, memory)
         return x
-
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term_even = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        div_term_odd = torch.exp(torch.arange(1, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term_even)
-        pe[:, 1::2] = torch.cos(position * div_term_odd)
-        pe = pe.unsqueeze(0)
-
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:, :x.shape[1]]
-
-        return self.dropout(x)
 
 
 class Audio2MIDITransformer(nn.Module):
@@ -123,10 +123,8 @@ class Audio2MIDITransformer(nn.Module):
 class AudioEncoder(nn.Module):
     def __init__(
         self, d_model=1025, hidden_dims=(512, 256), n_notes=88,
-        nhead_encoder=5,
-        num_encoder_layers=6,
-        dim_feedforward=2048,
-        batch_first=False
+        nhead_encoder=5, num_encoder_layers=4, dim_feedforward=2048,
+        batch_first=False, audio_length=24, win_length=13, 
     ):
         super().__init__()
         self.pos_encoding = PositionalEncoding(d_model)
@@ -144,15 +142,25 @@ class AudioEncoder(nn.Module):
             hidden_dims=hidden_dims, 
             n_notes=n_notes
         )
+        
+        src_mask = torch.full((audio_length, audio_length), float('-inf'))
+        for i in range(audio_length):
+            src_mask[i, i:i+win_length] = 0
+        self.src_mask = src_mask
 
     def forward(self, x):
         x = self.pos_encoding(x)
-        x = self.encoder(x)
         seq_len = x.shape[0]
+        x = self.encoder(x, mask=self.src_mask[:seq_len, :seq_len])
         x = self.freq_encoder(x.view(-1, x.shape[2]))
         x = x.view(seq_len, -1, x.shape[1])
 
         return x
+    
+    def to(self, *args, **kwargs):
+        self = super().to(*args, **kwargs)
+        self.src_mask = self.src_mask.to(*args, **kwargs)  # Ensure the mask is moved with the model
+        return self
 
 
 if __name__ == '__main__':
@@ -181,8 +189,8 @@ if __name__ == '__main__':
         d_model=STFT_n_rows,
         n_notes=n_notes,
         nhead_encoder=5,
-        num_encoder_layers=1,
-        dim_feedforward=16,
+        num_encoder_layers=3,
+        dim_feedforward=2048,
         batch_first=False
     )
     model.eval()
@@ -198,9 +206,8 @@ if __name__ == '__main__':
     import sys
     import os
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    from utils.modelviz import profile_model
+    from utils.modelviz import profile_model, draw_graphs
 
-    profile_model(model, inputs)
-    # from modules.utils.modelviz import draw_graphs
-    # draw_graphs(model, inputs, min_depth=1, max_depth=3, directory='./output/model_viz/', hide_module_functions=True, input_names=('spec_next', 'feature_prev'), output_names=('notes_next',))
+    # profile_model(model, inputs)
+    draw_graphs(model, inputs, min_depth=1, max_depth=5, directory='./output/model_viz/', hide_module_functions=True, input_names=('spec_next', 'feature_prev'), output_names=('notes_next',))
     

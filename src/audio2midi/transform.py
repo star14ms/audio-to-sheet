@@ -88,7 +88,7 @@ def collate_fn(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frame
     watch_n_frames = watch_prev_n_frames + 1 + watch_next_n_frames
     tgt_length = audio_length - watch_n_frames + 1
 
-    idxes = torch.arange(inputs.size(0))
+    idxes = torch.arange(inputs.size(0), dtype=torch.long)
     batch_idxs_list = idxes.unfold(0, audio_length, tgt_length)
 
     if shuffle:
@@ -99,7 +99,6 @@ def collate_fn(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frame
     t_batches = []
 
     for batch_idxs in batch_idxs_list:
-        batch_idxs = torch.tensor(batch_idxs, dtype=torch.long)
         x_batches.append(inputs[batch_idxs])
         t_indices = batch_idxs[:tgt_length] + watch_prev_n_frames
         t_batches.append(labels[t_indices])
