@@ -156,13 +156,13 @@ if __name__ == '__main__':
         inputs, labels = data
         print(inputs.shape, labels.shape)
 
-        # # Visualize whole spectrogram
-        # spectrogram_simplified = simplify_spectrogram_best_represent_each_note(inputs.T, dataset.n_fft, dataset.sr)
-        # plot_spectrogram_hightlighting_pressing_notes(spectrogram_simplified[:], labels.T, dataset.sr, dataset.hop_length)
+        # Visualize whole spectrogram
+        spectrogram_simplified = simplify_spectrogram_best_represent_each_note(inputs.T, dataset.sr, dataset.n_fft)
+        plot_spectrogram_hightlighting_pressing_notes(spectrogram_simplified[:], labels.T, dataset.sr, dataset.hop_length)
 
         # # Visualize each moment
         # for j in range(inputs.shape[1]):
-        #     spectrogram = simplify_spectrogram_best_represent_each_note(inputs[j, :], dataset.n_fft, dataset.sr)
+        #     spectrogram = simplify_spectrogram_best_represent_each_note(inputs[j, :], dataset.sr, dataset.n_fft)
         #     hot_encoded = torch.where(spectrogram > max(-80, torch.max(spectrogram)-10), spectrogram-torch.max(spectrogram)+9, 0)
         #     input_ = hot_encoded.to(torch.int32)
         #     label_ = labels[j].to(torch.int32)

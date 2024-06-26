@@ -5,9 +5,9 @@ import numpy as np
 from audio2midi.constants import NOTE_FREQUENCIES
 
 
-def get_frequency_spectrogram(audio_file, n_fft=2048, win_length=2048, hop_length=512):
+def get_frequency_spectrogram(audio_file, sr=22050, n_fft=2048, win_length=2048, hop_length=512, **kwargs):
     # Load the audio file
-    y, sr = librosa.load(audio_file)
+    y, sr = librosa.load(audio_file, sr=sr)
 
     # Generate the Short-Time Fourier Transform (STFT) of the audio
     D = np.abs(librosa.stft(y, n_fft=n_fft, win_length=win_length, hop_length=hop_length))
@@ -18,7 +18,7 @@ def get_frequency_spectrogram(audio_file, n_fft=2048, win_length=2048, hop_lengt
     return DB, sr
 
 
-def simplify_spectrogram_best_represent_each_note(spectrogram, n_fft, sr):
+def simplify_spectrogram_best_represent_each_note(spectrogram, sr=22050, n_fft=2048, **kwargs):
     note_to_specindex = {}
     frequencies = librosa.fft_frequencies(sr=sr, n_fft=n_fft)
     
@@ -32,10 +32,8 @@ def simplify_spectrogram_best_represent_each_note(spectrogram, n_fft, sr):
     return spectrogram
 
 
-def get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=False):
-    spectrogram, sr = get_frequency_spectrogram(audio_file, n_fft, win_length, hop_length)
-    
-    if optimize:
-        spectrogram = simplify_spectrogram_best_represent_each_note(spectrogram, n_fft, sr)
+def get_simplified_frequency_spectrogram(audio_file, sr=22050, n_fft=2048, win_length=2048, hop_length=512, **kwargs):
+    spectrogram, sr = get_frequency_spectrogram(audio_file, sr, n_fft, win_length, hop_length)
+    spectrogram = simplify_spectrogram_best_represent_each_note(spectrogram, sr, n_fft)
 
     return spectrogram, sr

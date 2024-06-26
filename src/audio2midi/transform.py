@@ -126,7 +126,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     from dataset import AudioMIDIDataset
 
-    transform = PadPrefix(pad_size=4)
+    transform = PadPrefix(prefix_size=4)
 
     audio_files = sorted(glob.glob('./data/train/*.wav'))
     midi_files = sorted(glob.glob('./data/train/*.mid'))

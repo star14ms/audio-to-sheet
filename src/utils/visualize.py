@@ -73,7 +73,7 @@ class bcolors:
             print(u"\u001b[0m")
 
 
-def plot_spectrogram(spectrogram, sr):
+def plot_spectrogram(spectrogram, sr=22050):
     # Display the spectrogram
     plt.figure(figsize=(15, 9))
     librosa.display.specshow(spectrogram, sr=sr, x_axis='time', y_axis='log')
@@ -84,7 +84,7 @@ def plot_spectrogram(spectrogram, sr):
     plt.show()
 
 
-def plot_spectrogram_simplified(spectrogram, sr, hop_length):
+def plot_spectrogram_simplified(spectrogram, sr=22050, hop_length=512):
     plt.figure(figsize=(15, 9))
     plt.pcolormesh(
         librosa.frames_to_time(np.arange(spectrogram.shape[1]+1), sr=sr, hop_length=hop_length), 

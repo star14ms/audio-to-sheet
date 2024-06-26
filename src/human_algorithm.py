@@ -110,6 +110,7 @@ def extract_notes(fs, spectrogram, sr, hop_length, open_threshold_initial, open_
 if __name__ == '__main__':
     audio_file = select_file('./data/audio')
 
+    sr = 22050
     n_fft = 2048
     win_length = n_fft
     hop_length = 512
@@ -121,6 +122,6 @@ if __name__ == '__main__':
     listen = True
     plot = True
 
-    spectrogram, sr = get_simplified_frequency_spectrogram(audio_file, n_fft, win_length, hop_length, optimize=True)
+    spectrogram, sr = get_simplified_frequency_spectrogram(audio_file, sr, n_fft, win_length, hop_length)
     notes = extract_notes(spectrogram[:, start_frame:], sr, hop_length, open_threshold_initial, open_threshold_weight, listen, speed)
     write_notes_to_midi(notes, 'output/main_simplify_spec.mid')
