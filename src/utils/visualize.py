@@ -3,6 +3,11 @@ import librosa.display
 import numpy as np 
 import sys
 import torch
+
+if __name__ == '__main__':
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from audio2midi.constants import NOTES
 
 
@@ -102,7 +107,44 @@ def plot_spectrogram_simplified(spectrogram, sr=22050, hop_length=512):
     plt.show()
 
 
-def plot_spectrogram_hightlighting_pressing_notes(spectrogram, pressed_notes, sr, hop_length):
+def plot_spectrograms_simplified(*spectrograms, titles=['Input (Simplified Spectrogram)', 'Predicted'], line_idxs=[4, 16], sr=22050, hop_length=512, **kwargs):
+    fig, axs = plt.subplots(1, 2, figsize=(15, 9))
+
+    for i, (ax, spectrogram, title) in enumerate(zip(axs, spectrograms, titles)):
+        img = ax.pcolormesh(
+            librosa.frames_to_time(np.arange(spectrogram.shape[1]+1), sr=sr, hop_length=hop_length), 
+            np.arange(spectrogram.shape[0]+1), 
+            spectrogram,
+            cmap='magma',
+            shading='flat', 
+        )
+        
+        if i == 0:
+            fig.colorbar(img, ax=ax, format='%+2.0f dB')
+            ax.set_ylabel('Frequency')
+        
+        if len(spectrograms) == 3:
+            ax.pcolormesh(
+                librosa.frames_to_time(np.arange(spectrograms[2].shape[1]+1), sr=sr, hop_length=hop_length), 
+                np.arange(spectrograms[2].shape[0]+1), 
+                spectrograms[2],
+                cmap='magma',
+                shading='flat', 
+                alpha=0.3
+            )
+        
+        ax.set_title(title + (' (with Ground Truth)' if i == 1 else ''), fontsize=12)
+        ax.set_yticks(np.arange(3, spectrogram.shape[0]+1, 12), ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8'])
+        ax.set_xlabel('Time')
+
+        unit_x_on_canvas = ax.dataLim.x1 / spectrogram.shape[1]
+        for line_idx in line_idxs:
+            ax.axvline(x=line_idx*unit_x_on_canvas, color='w', linewidth=2)
+
+    plt.show()
+
+
+def plot_spectrogram_hightlighting_pressing_notes(spectrogram, pressed_notes, sr, hop_length, **kwargs):
     _, ax = plt.subplots(figsize=(15, 9))
     img = ax.pcolormesh(
         librosa.frames_to_time(np.arange(spectrogram.shape[1]+1), sr=sr, hop_length=hop_length), 
@@ -169,3 +211,9 @@ def print_values_colored_by_min_max_normalizing(values):
         text += f'{bcolors.according_to_score(score*100)}{char}{bcolors.ENDC}'
     print(text)
   
+
+if __name__ == '__main__':
+    x, y, t = np.random.rand(88, 24), np.random.rand(88, 24), np.zeros([88, 24])
+    t[4, 4:10] = 1
+
+    plot_spectrograms_simplified(x, y, t)

@@ -73,13 +73,19 @@ def test(config):
             if config.model.name == 'Audio2MIDITransformer':
                 y_prev = y_prob
 
-            # visualize
+            # # visualize
             # print(torch.round(y_prob[0][0]*100))
             # print(y_prob[0][0][torch.tensor([3, 15, 27, 39, 51, 63, 75, 87])])
 
-            print_matching_highlight(t.squeeze().to(torch.int32).tolist(), y.squeeze()[watch_prev_n_frames].tolist())
+            # print_matching_highlight(t.squeeze().to(torch.int32).tolist(), y.squeeze()[watch_prev_n_frames].tolist())
 
-            # time.sleep(0.3)
+            # x_ = simplify_spectrogram_best_represent_each_note(x.squeeze().T.cpu())
+            # y_ = y.squeeze().T.cpu()
+            # pad_prev = torch.zeros([y_.shape[0], watch_prev_n_frames])
+            # pad_next = torch.zeros([y_.shape[0], watch_next_n_frames])
+            # t_ = torch.cat([pad_prev, t, pad_next], dim=1)
+            # plot_spectrograms_simplified(x_, y_, t_, line_idxs=[watch_prev_n_frames, watch_next_n_frames], **hparams_data)
+
         x_full = simplify_spectrogram_best_represent_each_note(inputs.squeeze(1).T.cpu(), **hparams_data)
         y_full = torch.stack(y_full)
         pad = torch.zeros([x_full.shape[1]-y_full.shape[0], len(y_full[0])])

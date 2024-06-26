@@ -4,6 +4,8 @@ from torch import nn
 from rich import print
 
 from audio2midi.model import Audio2MIDITransformer, AudioEncoder
+from audio2midi.preprocess import simplify_spectrogram_best_represent_each_note
+from utils.visualize import plot_spectrograms_simplified
 
 
 class Audio2MIDITransformerL(pl.LightningModule):
@@ -102,3 +104,13 @@ class Audio2EncoderL(pl.LightningModule):
     
     def train_dataloader(self) -> torch.Any:
         return super().train_dataloader()
+    
+    def visualize_dataset(self, x, y, t):
+        x, y, t = x.squeeze().T.detach().cpu(), y.squeeze().T.detach().cpu(), t.squeeze().T.detach().cpu()
+        
+        x_simplified = simplify_spectrogram_best_represent_each_note(x)
+        pad_prev = torch.zeros([y.shape[0], self.watch_prev_n_frames])
+        pad_next = torch.zeros([y.shape[0], self.watch_next_n_frames])
+        t = torch.cat([pad_prev, t, pad_next], dim=1)
+
+        plot_spectrograms_simplified(x_simplified, y, t)
