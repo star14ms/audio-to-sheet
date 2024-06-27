@@ -1,0 +1,12 @@
+name: "AudioStartConformer"
+
+params:
+  d_model: 1024
+  hidden_dims: [512, 256]
+  n_notes: 88
+  conv_channels: [1, 32, 64, 128]
+  activation: "relu"
+  nhead_encoder: 16
+  num_encoder_layers: 4
+  dim_feedforward: 2048
+  batch_first: false

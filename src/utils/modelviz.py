@@ -3,6 +3,7 @@ import os
 
 def profile_model(model, inputs):
     from thop import profile
+    from rich import print
     macs, params = profile(model, inputs=inputs, verbose=False)
     print(model)
     print('모델 생성 완료! (MACs: {} G | Params: {} M)'.format(
@@ -30,7 +31,7 @@ def draw_graphs(model, inputs, min_depth=1, max_depth=10, directory='./model_viz
             graph_name=model.__class__.__name__ + '.' + f'{i}_depth',
             directory=directory,
             hide_module_functions=hide_module_functions,
-            output_names=output_names
+            # output_names=output_names
         )
         
         current_file = base_filename + f'{i}_depth' + '.gv'

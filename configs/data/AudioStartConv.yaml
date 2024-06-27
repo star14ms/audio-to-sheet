@@ -1,4 +1,4 @@
-name: "AudioEncoder"
+name: "AudioStartConv"
 
 params:
   sr: 22050

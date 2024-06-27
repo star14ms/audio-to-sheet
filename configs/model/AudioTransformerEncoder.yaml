@@ -1,4 +1,4 @@
-name: "AudioEncoder"
+name: "AudioTransformerEncoder"
 
 params:
   d_model: 1024

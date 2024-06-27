@@ -1,4 +1,4 @@
 defaults:
-  - data: Audio2MIDIEncoder
-  - model: Audio2MIDIEncoder
+  - data: AudioStartConv
+  - model: AudioStartConv
   - train: default

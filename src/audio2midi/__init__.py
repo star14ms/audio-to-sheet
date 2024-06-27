@@ -1,6 +1,28 @@
 from dataclasses import dataclass
 from typing import List
 
+from audio2midi.model_lighting import (
+    AudioTransformerL, 
+    AudioTransformerEncoderL, 
+    AudioStartConvL,
+    AudioStartConformerL,
+)
+
+
+def get_model_class(model_name: str):
+    if model_name == 'AudioTransformer':
+        model_class = AudioTransformerL
+    elif model_name == 'AudioTransformerEncoder':
+        model_class = AudioTransformerEncoderL
+    elif model_name == 'AudioStartConv':
+        model_class = AudioStartConvL
+    elif model_name == 'AudioStartConformer':
+        model_class = AudioStartConformerL
+    else:
+        raise ValueError(f"Model name {model_name} not found")
+
+    return model_class
+
 
 @dataclass
 class DataConfig:
@@ -22,21 +44,11 @@ class TrainConfig:
 
 @dataclass
 class ModelConfig:
-    name: str = 'Audio2MIDITransformer'
+    name: str = 'AudioTransformer'
     pass
 
 @dataclass
-class Audio2MIDIConfig(ModelConfig):
-    batch_size: int = 16
-    threshold: float = 0.7
-    conv_dims: List[List[int]] = ((1, 4), (4, 8), (8, 16), (16, 32))
-    hidden_dims: List[int] = (512, 256)
-    n_notes: int = 88
-    nhead: int = 4
-    num_layers: int = 4
-
-@dataclass
-class Audio2MIDITransformerConfig(ModelConfig):
+class AudioTransformerConfig(ModelConfig):
     d_model: int = 1024
     hidden_dims: List[int] = (512, 256)
     n_notes: int = 88
@@ -49,11 +61,31 @@ class Audio2MIDITransformerConfig(ModelConfig):
     batch_first: bool = False
 
 @dataclass
-class AudioEncoderConfig:
+class AudioTransformerEncoderConfig:
     d_model: int = 1024
     hidden_dims: List[int] = (512, 256)
     n_notes: int = 88
     nhead_encoder: int = 16
     num_encoder_layers: int = 6
     dim_feedforward: int = 2048
+    batch_first: bool = False
+
+@dataclass
+class AudioStartConvConfig:
+    d_model: int = 1024
+    hidden_dims: List[int] = (512, 256)
+    n_notes: int = 88
+    conv_channels: List[int] = (1, 32, 64, 128)
+    activation: str = 'relu'
+
+@dataclass
+class AudioStartConformerConfig:
+    d_model: int = 1024
+    hidden_dims: List[int] = (512, 256)
+    n_notes: int = 88
+    conv_channels: List[int] = (1, 32, 64, 128)
+    nhead_encoder: int = 16
+    num_encoder_layers: int = 4
+    dim_feedforward: int = 2048
+    activation: str = 'relu'
     batch_first: bool = False

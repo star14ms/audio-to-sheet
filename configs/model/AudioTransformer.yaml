@@ -1,4 +1,4 @@
-name: "Audio2MIDITransformer"
+name: "AudioTransformer"
 
 params:
   d_model: 1024

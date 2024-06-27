@@ -1,0 +1,12 @@
+name: "AudioTransformer"
+
+params:
+  sr: 22050
+  n_fft: 2048
+  win_length: 2048
+  hop_length: 512
+  bpm: 120
+  audio_length: 24
+  watch_prev_n_frames: 4
+  watch_next_n_frames: 8
+  batch_size: 16

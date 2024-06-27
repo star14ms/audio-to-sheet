@@ -12,8 +12,15 @@ from rich import print
 from rich.progress import track
 install()
 
-from audio2midi import DataConfig, TrainConfig, Audio2MIDITransformerConfig, AudioEncoderConfig
-from audio2midi.model_lighting import Audio2MIDITransformerL, Audio2EncoderL # choose the model you want to train
+from audio2midi import (
+    get_model_class,
+    DataConfig, 
+    TrainConfig, 
+    AudioTransformerConfig, 
+    AudioTransformerEncoderConfig, 
+    AudioStartConvConfig, 
+    AudioStartConformerConfig
+)
 from audio2midi.preprocess import simplify_spectrogram_best_represent_each_note
 from dataset import AudioMIDIDataset
 from utils import print_matching_highlight
@@ -23,24 +30,21 @@ from utils.visualize import plot_spectrogram_hightlighting_pressing_notes, plot_
 def test(config):
     hparams_data = OmegaConf.to_container(config.data.params, resolve=True)
     hparams_model = OmegaConf.to_container(config.model.params, resolve=True)
-    audio_length = hparams_data.pop('audio_length')
+    _ = hparams_data.pop('audio_length')
     watch_prev_n_frames = hparams_data.pop('watch_prev_n_frames')
     watch_next_n_frames = hparams_data.pop('watch_next_n_frames')
     watch_n_frames = watch_prev_n_frames + 1 + watch_next_n_frames
     _ = hparams_data.pop('batch_size')
-    
-    if config.model.name == 'Audio2MIDITransformer':
-        model = Audio2MIDITransformerL(**hparams_model)
-    elif config.model.name == 'AudioEncoder':
-        shared_parames = {
-            'watch_prev_n_frames': watch_prev_n_frames,
-            'watch_next_n_frames': watch_next_n_frames,
-        }
-        model = Audio2EncoderL(**hparams_model, **shared_parames)
-    else:
-        raise ValueError(f"Model name {config.model.name} not found")
 
+    hparams_shared = {
+        'watch_prev_n_frames': watch_prev_n_frames,
+        'watch_next_n_frames': watch_next_n_frames,
+    }
+
+    model_class = get_model_class(config.model.name)
+    model = model_class(**hparams_model, **hparams_shared)
     print(OmegaConf.to_yaml(config))
+
     model.load_state_dict(torch.load(config.model_path))
     model.eval()
 
@@ -61,16 +65,16 @@ def test(config):
             x = inputs[j:j+watch_n_frames]
             t = labels[j+watch_prev_n_frames:j+watch_prev_n_frames+1].to(torch.int32).squeeze(0).T.cpu()
             
-            if config.model.name == 'Audio2MIDITransformer':
+            if config.model.name == 'AudioTransformer':
                 y = model(x, y_prev)
-            elif config.model.name == 'AudioEncoder':
+            elif config.model.name == 'AudioTransformerEncoder':
                 y = model(x)
             
             y_prob = torch.sigmoid(y)
             y = torch.where(y_prob >= config.threshold, torch.tensor(1), torch.tensor(0)).to(torch.int32)
             y_full.append(y[0][0].cpu())
 
-            if config.model.name == 'Audio2MIDITransformer':
+            if config.model.name == 'AudioTransformer':
                 y_prev = y_prob
 
             # # visualize
@@ -97,8 +101,10 @@ def test(config):
 cs = ConfigStore.instance()
 cs.store(group="data", name="base_data", node=DataConfig, package="data")
 cs.store(group="train", name="base_train", node=TrainConfig, package="train")
-cs.store(group="model", name="base_Audio2MIDITransformer_model", node=Audio2MIDITransformerConfig, package="model")
-cs.store(group="model", name="base_AudioEncoder_model", node=AudioEncoderConfig, package="model")
+cs.store(group="model", name="base_AudioTransformer_model", node=AudioTransformerConfig, package="model")
+cs.store(group="model", name="base_AudioTransformerEncoder_model", node=AudioTransformerEncoderConfig, package="model")
+cs.store(group="model", name="base_AudioStartConv_model", node=AudioStartConvConfig, package="model")
+cs.store(group="model", name="base_AudioStartConformer_model", node=AudioStartConformerConfig, package="model")
 
 
 @hydra.main(config_path=os.path.join('..', "configs"), config_name="test", version_base=None)
