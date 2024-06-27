@@ -36,7 +36,7 @@ def train(config: DictConfig):
     }
 
     t_prev = True if config.model.name == 'AudioTransformer' else False
-    datamodule = AudioDataModule(t_prev, **hparams_data)
+    datamodule = AudioDataModule(t_prev=t_prev, **hparams_data)
 
     model_class = get_model_class(config.model.name)
     model = model_class(**hparams_model, **hparams_shared, **hparams_train)
@@ -58,7 +58,7 @@ def train(config: DictConfig):
     trainer.fit(model, datamodule=datamodule)
 
     # Save the model to disk (optional)
-    torch.save(model.state_dict(), './output/model.pth')
+    torch.save(model.state_dict(), './output/model_{}.pth'.format(model.__class__.__name__))
 
 
 cs = ConfigStore.instance()

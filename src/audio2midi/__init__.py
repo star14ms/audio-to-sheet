@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from typing import List
 
-from audio2midi.model_lighting import (
-    AudioTransformerL, 
-    AudioTransformerEncoderL, 
-    AudioStartConvL,
-    AudioStartConformerL,
-)
-
 
 def get_model_class(model_name: str):
+    from audio2midi.model_lighting import (
+        AudioTransformerL, 
+        AudioTransformerEncoderL, 
+        AudioStartConvL,
+        AudioStartConformerL,
+    )
+
     if model_name == 'AudioTransformer':
         model_class = AudioTransformerL
     elif model_name == 'AudioTransformerEncoder':

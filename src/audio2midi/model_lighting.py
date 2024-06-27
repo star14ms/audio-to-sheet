@@ -132,9 +132,9 @@ class AudioStartConvL(pl.LightningModule):
         device = 'mps' if torch.backends.mps.is_available() else None
         self.model.to(device)
 
-    def forward(self, inputs):
+    def forward(self, inputs, watch_prev_n_frames, watch_next_n_frames):
         # In Lightning, forward defines the prediction/inference actions
-        return self.model(inputs)
+        return self.model(inputs, watch_prev_n_frames, watch_next_n_frames)
 
     def training_step(self, batches):
         total_loss = 0

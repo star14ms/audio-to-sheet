@@ -52,7 +52,7 @@ class PadPrefix:
             torch.cat((torch.zeros((self.prefix_size, labels.shape[1])), labels), dim=0)
 
 
-def collate_fn_making_t_prev(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frames=12, batch_size=16, shuffle=True):
+def collate_fn_making_t_prev(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frames=8, batch_size=16, shuffle=True):
     inputs, labels = batch[0] # one batch only
     watch_n_frames = watch_prev_n_frames + 1 + watch_next_n_frames
     tgt_length = audio_length - watch_n_frames + 1
@@ -95,7 +95,7 @@ def collate_fn_making_t_prev(batch, audio_length=24, watch_prev_n_frames=4, watc
     return list(zip(x_batches, t_prev_batches, t_batches))
 
 
-def collate_fn(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frames=12, batch_size=16, shuffle=True):
+def collate_fn(batch, audio_length=24, watch_prev_n_frames=4, watch_next_n_frames=8, batch_size=16, shuffle=True):
     inputs, labels = batch[0] # one batch only
     watch_n_frames = watch_prev_n_frames + 1 + watch_next_n_frames
     tgt_length = audio_length - watch_n_frames + 1

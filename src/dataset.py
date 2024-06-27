@@ -1,7 +1,5 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms as transforms
-from torchvision.transforms import Normalize
 from pytorch_lightning import LightningDataModule
 
 import librosa
@@ -18,18 +16,19 @@ from audio2midi.transform import AlignTimeDimension, PadPrefix, collate_fn_makin
 
 
 class AudioMIDIDataset(Dataset):
-    def __init__(self, audio_files, midi_files, transform=None, sr=22050, n_fft=2048, win_length=2048, hop_length=512, watch_prev_n_frames=4, bpm=120):
-        self.transform = transform
+    def __init__(self, audio_files, midi_files, transform=None, sr=22050, n_fft=2048, win_length=2048, hop_length=512, watch_prev_n_frames=4, bpm=120, *args, **kwargs):
         self.sr = sr
         self.n_fft = n_fft
         self.win_length = win_length
         self.hop_length = hop_length
         self.audio_files = audio_files
         self.midi_files = midi_files
-        self.transform = transform
         self.watch_prev_n_frames = watch_prev_n_frames
         self.bpm = bpm
-        
+
+        if transform is None:
+            transform = PadPrefix(prefix_size=watch_prev_n_frames)
+        self.transform = transform
         self.prepare_data()
     
     def __len__(self):
@@ -112,9 +111,7 @@ class AudioDataModule(LightningDataModule):
         }
         audio_files = sorted(glob.glob(audio_files))
         midi_files = sorted(glob.glob(midi_files))
-
-        transform = PadPrefix(prefix_size=watch_prev_n_frames)
-        self.dataset = AudioMIDIDataset(audio_files, midi_files, transform, **kwargs_dataset)
+        self.dataset = AudioMIDIDataset(audio_files, midi_files, **kwargs_dataset)
 
     def train_dataloader(self, num_workers=None):
         if num_workers is None:
@@ -155,28 +152,39 @@ if __name__ == '__main__':
 
     dataset = AudioMIDIDataset(audio_files, midi_files)
 
-    for i, data in enumerate(dataset):
-        inputs, labels = data
-        print(inputs.shape, labels.shape)
+    # for i, data in enumerate(dataset):
+    #     inputs, labels = data
+    #     print(inputs.shape, labels.shape)
 
-        # Visualize whole spectrogram
-        spectrogram_simplified = simplify_spectrogram_best_represent_each_note(inputs.T, dataset.sr, dataset.n_fft)
-        plot_spectrogram_hightlighting_pressing_notes(spectrogram_simplified[:], labels.T, dataset.sr, dataset.hop_length)
+    #     # Visualize whole spectrogram
+    #     spectrogram_simplified = simplify_spectrogram_best_represent_each_note(inputs.T, dataset.sr, dataset.n_fft)
+    #     plot_spectrogram_hightlighting_pressing_notes(spectrogram_simplified[:], labels.T, dataset.sr, dataset.hop_length)
 
-        # # Visualize each moment
-        # for j in range(inputs.shape[1]):
-        #     spectrogram = simplify_spectrogram_best_represent_each_note(inputs[j, :], dataset.sr, dataset.n_fft)
-        #     hot_encoded = torch.where(spectrogram > max(-80, torch.max(spectrogram)-10), spectrogram-torch.max(spectrogram)+9, 0)
-        #     input_ = hot_encoded.to(torch.int32)
-        #     label_ = labels[j].to(torch.int32)
+    #     # # Visualize each moment
+    #     # for j in range(inputs.shape[1]):
+    #     #     spectrogram = simplify_spectrogram_best_represent_each_note(inputs[j, :], dataset.sr, dataset.n_fft)
+    #     #     hot_encoded = torch.where(spectrogram > max(-80, torch.max(spectrogram)-10), spectrogram-torch.max(spectrogram)+9, 0)
+    #     #     input_ = hot_encoded.to(torch.int32)
+    #     #     label_ = labels[j].to(torch.int32)
             
-        #     print_matching_highlight(label_, input_)
-        #     input()
-        # break
+    #     #     print_matching_highlight(label_, input_)
+    #     #     input()
+    #     # break
 
-    # # DataLoader with custom collate function
-    # data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=custom_collate_fn)
+    # DataLoader with custom collate function
+    kwargs = {
+        'audio_length': 24,
+        'watch_next_n_frames': 8,
+        'watch_prev_n_frames': 4,
+        'batch_size': 16,
+        'shuffle': False,
+    }
+    collate_with_param = partial(collate_fn, **kwargs)
+    data_loader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_with_param)
 
-    # for x_batches, t_prev_batches, t_batches in data_loader:
-    #     print(x_batches.shape, t_prev_batches.shape, t_batches.shape)
-    #     input()
+    for batches in data_loader:
+        for (inputs, labels) in batches:
+            print(inputs.shape, labels.shape)
+            print(inputs[0][0])
+            breakpoint()
+    

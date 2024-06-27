@@ -6,6 +6,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from typing_extensions import override
 from typing import Any, Optional
 from rich.progress import TaskID, TextColumn
+from rich import print
 
 
 class RichProgressBarCustom(RichProgressBar):
@@ -28,9 +29,10 @@ class RichProgressBarCustom(RichProgressBar):
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         super().on_train_start(trainer, pl_module)
-        self.train_progress_bar0_id = self.progress.add_task(description='Epoch {}/{}'.format(self._trainer.current_epoch+1, self._trainer.max_epochs), total=self._trainer.max_epochs)
+        max_iter = self._trainer.fit_loop.max_batches*self._trainer.max_epochs
+        self.train_progress_bar0_id = self.progress.add_task(description=f'Epoch 1/{max_iter}', total=max_iter)
 
-    def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True, description: str = '') -> None:
+    def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True, description: str = None) -> None:
         if self.progress is not None and self.is_enabled:
             assert progress_bar_id is not None
             total = self.progress.tasks[progress_bar_id].total
@@ -38,7 +40,7 @@ class RichProgressBarCustom(RichProgressBar):
             if not self._should_update(current, total):
                 return
               
-            if description == '':
+            if description == None:
                 description = self.progress.tasks[progress_bar_id].description
 
             leftover = current % self.refresh_rate
@@ -57,13 +59,22 @@ class RichProgressBarCustom(RichProgressBar):
     ) -> None:
         train_description = "Iter {}/{}".format(batch_idx + 1, self._trainer.fit_loop.max_batches)
         self._update(self.train_progress_bar_id, batch_idx + 1, description=train_description)
+
+        current_epoch = self._trainer.current_epoch
+        max_epochs = self._trainer.max_epochs
+        new_description = 'Epoch {}/{}'.format(current_epoch+1, max_epochs)
+        self.progress.update(self.train_progress_bar0_id, advance=1, description=new_description)
+
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self.progress.update(self.train_progress_bar0_id, advance=self._trainer.current_epoch + 1)
-        if self._trainer.current_epoch + 1 == self._trainer.max_epochs:
+        current_epoch = self._trainer.current_epoch
+        max_epochs = self._trainer.max_epochs
+        print('Epoch {}/{}'.format(current_epoch+1, max_epochs))
+
+        if current_epoch+1 == max_epochs:
             self.progress.stop()
         self._update_metrics(trainer, pl_module)
 

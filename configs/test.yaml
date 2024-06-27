@@ -1,7 +1,7 @@
 defaults:
-  - data: Audio2MIDIEncoder
-  - model: Audio2MIDIEncoder
+  - data: AudioStartConv
+  - model: AudioStartConv
   - train: default
 
-model_path: "output/model.pth"
+model_path: "output/model_AudioStartConvL_.pth"
 threshold: 0.01
