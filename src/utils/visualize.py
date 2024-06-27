@@ -160,7 +160,7 @@ def plot_spectrogram_hightlighting_pressing_notes(spectrogram, pressed_notes, sr
         for j, pressed in enumerate(pressed_notes_moment):
             if pressed and pressed_notes_moment[j-1] == 0:
                 ax.scatter(unit_x_on_canvas*j, unit_y_on_canvas*i+unit_y_on_canvas/2, color='red', s=10)
-            elif not pressed and pressed_notes_moment[j-1] == 1:
+            elif pressed and (j == len(pressed_notes_moment) - 1 or pressed_notes_moment[j+1] == 0):
                 ax.scatter(unit_x_on_canvas*j, unit_y_on_canvas*i+unit_y_on_canvas/2, color='blue', s=10)
 
     plt.colorbar(img, format='%+2.0f dB', ax=ax)

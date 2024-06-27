@@ -1,11 +1,11 @@
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import RichProgressBar
+from pytorch_lightning.callbacks.progress.rich_progress import BatchesProcessedColumn, CustomBarColumn, CustomTimeColumn, ProcessingSpeedColumn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 from typing_extensions import override
 from typing import Any, Optional
 from rich.progress import TaskID, TextColumn
-from pytorch_lightning.callbacks.progress.rich_progress import BatchesProcessedColumn, CustomBarColumn, CustomTimeColumn, ProcessingSpeedColumn
 
 
 class RichProgressBarCustom(RichProgressBar):

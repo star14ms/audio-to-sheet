@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-# import torchvision.transforms as transforms
+import torchvision.transforms as transforms
+from torchvision.transforms import Normalize
 from pytorch_lightning import LightningDataModule
 
 import librosa
@@ -54,11 +55,11 @@ class AudioMIDIDataset(Dataset):
         y, sr = librosa.load(audio_file, sr=sr)
         D = np.abs(librosa.stft(y, n_fft=n_fft, win_length=win_length, hop_length=hop_length))
         DB = librosa.amplitude_to_db(D, ref=np.max)
-        return DB, sr
+        return DB[1:,:], sr
     
-    def prepare_data(self):
+    def prepare_data(self, labeled_only_start_of_notes=False):
         print('Preprocessing data...')
-        align = AlignTimeDimension()
+        align = AlignTimeDimension(labeled_only_start_of_notes=labeled_only_start_of_notes)
 
         for audio_file, midi_file in zip(self.audio_files, self.midi_files):
             if os.path.relpath(midi_file.replace('.mid', '.pkl')) in glob.glob('data/train/*.pkl'):
@@ -75,7 +76,7 @@ class AudioMIDIDataset(Dataset):
             
             # Load and process the MIDI file
             midi_seconds_per_tick = second_per_tick(self.bpm)
-            midi_matrix = midi_to_matrix(midi_file, audio_length_seconds)
+            midi_matrix = midi_to_matrix(midi_file, audio_length_seconds, bpm=self.bpm)
 
             labels = align(midi_matrix, len(spectrogram), midi_seconds_per_tick, audio_length_seconds)
             
@@ -118,14 +119,15 @@ class AudioDataModule(LightningDataModule):
     def train_dataloader(self, num_workers=None):
         if num_workers is None:
             num_workers = int(sys.argv[1]) if len(sys.argv) > 1 else 0
-            
+
         kwargs = {
             'audio_length': self.audio_length,
             'watch_next_n_frames': self.watch_next_n_frames,
             'watch_prev_n_frames': self.watch_prev_n_frames,
             'batch_size': self.batch_size,
+            'shuffle': True,
         }
-        
+
         if self.t_prev:
             collate_with_param = partial(collate_fn_making_t_prev, **kwargs)
         else:
@@ -146,8 +148,9 @@ if __name__ == '__main__':
     midi_files = sorted(glob.glob(midi_files))
 
     # # select one file
-    # from utils.menu import select_file
-    # audio_files = [select_file('./data/train')]
+    # from utils.menu import show_menu
+    # file_path, _ = show_menu({audio_file.split('/')[-1]: os.path.abspath(audio_file) for audio_file in audio_files}, title='Select audio file')
+    # audio_files = [file_path]
     # midi_files = list(map(lambda x: x.replace('.wav', '.mid'), audio_files))
 
     dataset = AudioMIDIDataset(audio_files, midi_files)

@@ -37,10 +37,10 @@ class Audio2MIDIConfig(ModelConfig):
 
 @dataclass
 class Audio2MIDITransformerConfig(ModelConfig):
-    d_model: int = 1025
+    d_model: int = 1024
     hidden_dims: List[int] = (512, 256)
     n_notes: int = 88
-    nhead_encoder: int = 5
+    nhead_encoder: int = 16
     nhead_decoder: int = 11
     num_encoder_layers: int = 6
     num_decoder_layers: int = 6
@@ -50,10 +50,10 @@ class Audio2MIDITransformerConfig(ModelConfig):
 
 @dataclass
 class AudioEncoderConfig:
-    d_model: int = 1025
+    d_model: int = 1024
     hidden_dims: List[int] = (512, 256)
     n_notes: int = 88
-    nhead_encoder: int = 5
+    nhead_encoder: int = 16
     num_encoder_layers: int = 6
     dim_feedforward: int = 2048
     batch_first: bool = False

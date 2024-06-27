@@ -25,7 +25,7 @@ class AudioTimeEncoder(nn.Module):
 
 
 class AudioFreqEncoder(nn.Module):
-    def __init__(self, in_featrue=1025, hidden_dims=(512, 256), n_notes=88):
+    def __init__(self, in_featrue=1024, hidden_dims=(512, 256), n_notes=88):
         super().__init__()
         
         self.ff_layers = nn.Sequential()
@@ -82,7 +82,7 @@ class Audio2MIDI(nn.Module):
 
 
 class AudioFreqEncoderOld(nn.Module):
-    def __init__(self, in_featrue=1025, hidden_dims=(512, 256), n_notes=88, n_channels=32):
+    def __init__(self, in_featrue=1024, hidden_dims=(512, 256), n_notes=88, n_channels=32):
         super().__init__()
         
         self.ff_layers = nn.Sequential()

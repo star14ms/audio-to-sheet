@@ -25,7 +25,7 @@ class PositionalEncoding(nn.Module):
 
 
 class AudioFreqEncoder(nn.Module):
-    def __init__(self, in_featrue=1025, hidden_dims=(512, 256), n_notes=88):
+    def __init__(self, in_featrue=1024, hidden_dims=(512, 256), n_notes=88):
         super().__init__()
         
         self.ff_layers = nn.Sequential()
@@ -63,8 +63,8 @@ class AudioTransformerDecoder(nn.Module):
 
 class Audio2MIDITransformer(nn.Module):
     def __init__(
-        self, d_model=1025, hidden_dims=(512, 256), n_notes=88, 
-        nhead_encoder=5, nhead_decoder=11, 
+        self, d_model=1024, hidden_dims=(512, 256), n_notes=88, 
+        nhead_encoder=16, nhead_decoder=11, 
         num_encoder_layers=6, num_decoder_layers=6, 
         dim_feedforward_encoder=2048, dim_feedforward_decoder=256, 
         batch_first=False, audio_length=24, win_length=13
@@ -122,8 +122,8 @@ class Audio2MIDITransformer(nn.Module):
 
 class AudioEncoder(nn.Module):
     def __init__(
-        self, d_model=1025, hidden_dims=(512, 256), n_notes=88,
-        nhead_encoder=5, num_encoder_layers=4, dim_feedforward=2048,
+        self, d_model=1024, hidden_dims=(512, 256), n_notes=88,
+        nhead_encoder=16, num_encoder_layers=4, dim_feedforward=2048,
         batch_first=False, audio_length=24, win_length=13, 
     ):
         super().__init__()
@@ -171,13 +171,13 @@ if __name__ == '__main__':
     tgt_length = audio_length - win_length + 1
     batch_size = 2
     n_fft = 2048
-    STFT_n_rows = 1 + n_fft//2
+    STFT_n_rows = 1 + n_fft//2 - 1
     n_notes = 88
 
     # model = Audio2MIDITransformer(
     #     d_model=STFT_n_rows,
     #     n_notes=n_notes,
-    #     nhead_encoder=5,
+    #     nhead_encoder=16,
     #     nhead_decoder=11,
     #     num_decoder_layers=1,
     #     num_encoder_layers=1,
@@ -188,8 +188,8 @@ if __name__ == '__main__':
     model = AudioEncoder(
         d_model=STFT_n_rows,
         n_notes=n_notes,
-        nhead_encoder=5,
-        num_encoder_layers=3,
+        nhead_encoder=16,
+        num_encoder_layers=1,
         dim_feedforward=2048,
         batch_first=False
     )
